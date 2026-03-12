@@ -76,7 +76,7 @@ See `docs/TESTING.md` for detailed testing documentation.
 The project uses GitHub Actions for continuous integration and deployment:
 
 - **On every PR**: Lint, typecheck, unit tests, E2E tests, preview deployment
-- **On main branch**: Full test suite + production deployment
+- **On master branch**: Full test suite + production deployment
 
 See `.github/workflows/ci.yml` for the pipeline configuration.
 

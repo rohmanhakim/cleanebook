@@ -154,7 +154,7 @@ The `atob()` function for Base64 decoding is available natively in Cloudflare Wo
 ### 5. Cloudflare Pages Has Separate Environments for Secrets
 
 Cloudflare Pages has **two separate environments**:
-- **production** - For deployments from the main branch (via Git integration)
+- **production** - For deployments from the master branch (via Git integration)
 - **preview** - For deployments via direct upload (`wrangler pages deploy`)
 
 **Secrets must be set for each environment separately!**

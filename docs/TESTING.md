@@ -184,7 +184,7 @@ Tests run automatically in GitHub Actions (see `.github/workflows/ci.yml`):
 
 All tests must pass before:
 - Preview deployments (on PRs)
-- Production deployments (on main branch)
+- Production deployments (on master branch)
 
 ## Best Practices
 

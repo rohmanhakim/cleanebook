@@ -36,7 +36,7 @@
   - `unit-tests` job — Runs `pnpm test`
   - `e2e-tests` job — Runs Playwright tests
   - `deploy-preview` job — Deploys to CF Pages on PRs
-  - `deploy-production` job — Deploys to CF Pages on main
+  - `deploy-production` job — Deploys to CF Pages on master
 
 ## Key Learnings
 
@@ -202,7 +202,7 @@ pnpm test:e2e
 
 1. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets in GitHub
 2. Add `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` repository variables in GitHub
-3. Push to `main` to trigger the first production deployment
+3. Push to `master` to trigger the first production deployment
 4. Create a PR to test the preview deployment flow
 5. Add more comprehensive tests as features are built
 

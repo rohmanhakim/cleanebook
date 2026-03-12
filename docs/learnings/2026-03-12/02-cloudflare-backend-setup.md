@@ -52,7 +52,7 @@ Cloudflare Pages has different `wrangler.jsonc` requirements than Workers:
 ```
 
 **Key differences:**
-- Use `pages_build_output_dir` instead of `main`
+- Use `pages_build_output_dir` instead of `master`
 - `ASSETS` binding is reserved in Pages - don't define it
 - Workflows and queue consumers need separate Worker configuration
 
@@ -68,7 +68,7 @@ pnpm add zod@^3.25.67
 
 Pages projects must be created explicitly:
 ```bash
-wrangler pages project create cleanebook --production-branch main
+wrangler pages project create cleanebook --production-branch master
 ```
 
 Then deploy:
@@ -114,7 +114,7 @@ wrangler d1 create cleanebook-db
 wrangler r2 bucket create cleanebook-files
 wrangler kv namespace create KV
 wrangler queues create cleanebook-jobs
-wrangler pages project create cleanebook --production-branch main
+wrangler pages project create cleanebook --production-branch master
 
 # Deploy
 source ~/.nvm/nvm.sh
