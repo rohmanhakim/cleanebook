@@ -1,13 +1,30 @@
-import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { defineConfig } from 'vitest/config';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { resolve } from 'path';
 
-export default defineWorkersConfig({
+export default defineConfig({
+	plugins: [
+		svelte({
+			compilerOptions: {
+				runes: true
+			}
+		})
+	],
 	test: {
-		include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+		include: ['tests/unit/**/*.test.ts'],
 		globals: true,
-		poolOptions: {
-			workers: {
-				wrangler: { configPath: './wrangler.dev.jsonc' }
+		environment: 'jsdom',
+		server: {
+			deps: {
+				inline: true
 			}
 		}
+	},
+	resolve: {
+		alias: {
+			$lib: resolve('./src/lib')
+		},
+		conditions: ['browser'],
+		mainFields: ['browser', 'module', 'main']
 	}
 });

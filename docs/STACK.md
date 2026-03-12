@@ -12,44 +12,61 @@ Do NOT upgrade versions without re-verifying. Do NOT use versions not listed her
   "name": "cleanebook",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "deploy": "npm run build && wrangler pages deploy"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "db:migrate:local": "npx wrangler d1 migrations apply cleanebook-db --local",
+    "db:migrate:prod": "npx wrangler d1 migrations apply cleanebook-db --remote",
+    "deploy": "pnpm run build && npx wrangler pages deploy .svelte-kit/cloudflare --commit-dirty=true --config wrangler.prod.jsonc"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "@cloudflare/workers-types": "^4.20260312.1",
+    "@playwright/test": "^1.58.2",
     "@sveltejs/adapter-cloudflare": "^7.2.8",
-    "@sveltejs/kit": "^2.53.4",
-    "@sveltejs/vite-plugin-svelte": "^6.0.0",
-    "@cloudflare/workers-types": "^4.20260307.1",
-    "svelte": "^5.53.8",
-    "svelte-check": "^4.0.0",
-    "typescript": "^5.5.0",
-    "vite": "^7.0.0",
-    "wrangler": "^4.71.0"
+    "@sveltejs/kit": "^2.54.0",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@testing-library/svelte": "^5.3.1",
+    "@types/node": "^25.4.0",
+    "autoprefixer": "^10.4.27",
+    "jsdom": "^28.1.0",
+    "postcss": "^8.5.8",
+    "svelte": "^5.53.10",
+    "svelte-check": "^4.4.5",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "3.2.4",
+    "wrangler": "^4.72.0"
   },
   "dependencies": {
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
+    "@polar-sh/checkout": "^0.2.0",
+    "@polar-sh/sdk": "^0.46.3",
     "@tanstack/svelte-query": "^6.1.0",
-    "arctic": "^3.1.1",
+    "arctic": "^3.7.0",
     "bits-ui": "^2.16.3",
     "epub-gen-memory": "^1.1.2",
     "fflate": "^0.8.2",
     "konva": "^10.2.0",
+    "nanoid": "^5.0.7",
     "pdfjs-dist": "^5.5.207",
-    "pdfjs-serverless": "^0.6.0",
+    "pdfjs-serverless": "^1.1.0",
     "svelte-konva": "^1.0.1",
-    "svelte-sonner": "^1.0.7",
-    "sveltekit-superforms": "^2.29.1",
-    "zod": "^3.25.67",
-    "@polar-sh/sdk": "^0.46.3",
-    "@polar-sh/checkout": "^0.2.0"
+    "svelte-sonner": "^1.1.0",
+    "sveltekit-superforms": "^2.30.0",
+    "zod": "^3.25.67"
   }
-}
 ```
 
 ---

@@ -59,9 +59,64 @@ test.describe('Landing page', () => {
 		// Scroll to pricing
 		await page.locator('#pricing').scrollIntoViewIfNeeded();
 
-		// Check for pricing tier headings (use exact to match h3 pricing headings, not hero h1)
-		await expect(page.getByRole('heading', { name: 'Free', exact: true })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Reader', exact: true })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Collector', exact: true })).toBeVisible();
+		// Check for pricing tier titles (Card.Title renders div, not heading)
+		const pricingSection = page.locator('#pricing');
+		await expect(pricingSection.getByText('Free', { exact: true }).first()).toBeVisible();
+		await expect(pricingSection.getByText('Reader', { exact: true }).first()).toBeVisible();
+		await expect(pricingSection.getByText('Collector', { exact: true }).first()).toBeVisible();
+	});
+
+	test('should display upload drop zone', async ({ page }) => {
+		await page.goto('/');
+
+		// Check for upload drop zone
+		await expect(page.getByText('Drop your PDF here')).toBeVisible();
+		await expect(page.getByText('or click to browse')).toBeVisible();
+		await expect(page.getByText('Max 100 pages • Free • No signup required')).toBeVisible();
+	});
+
+	test('should display feature cards', async ({ page }) => {
+		await page.goto('/');
+
+		// Scroll to features
+		await page.locator('#features').scrollIntoViewIfNeeded();
+
+		// Check for feature card titles
+		const featuresSection = page.locator('#features');
+		await expect(featuresSection.getByText('Smart Region Detection')).toBeVisible();
+		await expect(featuresSection.getByText('Figure & Code Handling')).toBeVisible();
+		await expect(featuresSection.getByText('Template System')).toBeVisible();
+	});
+
+	test('should display how it works steps', async ({ page }) => {
+		await page.goto('/');
+
+		// Scroll to how it works
+		await page.locator('#how-it-works').scrollIntoViewIfNeeded();
+
+		// Check for step titles
+		const howItWorksSection = page.locator('#how-it-works');
+		await expect(howItWorksSection.getByText('Upload Your PDF')).toBeVisible();
+		await expect(howItWorksSection.getByText('Define Regions')).toBeVisible();
+		await expect(howItWorksSection.getByText('Download EPUB')).toBeVisible();
+	});
+
+	test('should display footer', async ({ page }) => {
+		await page.goto('/');
+
+		// Check for footer content
+		await expect(page.locator('footer')).toContainText('CleanEbook');
+		await expect(page.locator('footer')).toContainText('© 2025 CleanEbook');
+	});
+
+	test('should have mobile navigation menu', async ({ page }) => {
+		await page.goto('/');
+
+		// Set mobile viewport
+		await page.setViewportSize({ width: 375, height: 667 });
+
+		// Mobile menu button should be visible
+		const menuButton = page.locator('header button[aria-haspopup], header [data-slot="sheet-trigger"]').first();
+		await expect(menuButton).toBeVisible();
 	});
 });
