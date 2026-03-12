@@ -14,15 +14,18 @@ wrangler d1 migrations apply cleanebook-db
 ```sql
 -- Users
 CREATE TABLE users (
-  id                    TEXT PRIMARY KEY,         -- nanoid(), e.g. "usr_abc123"
-  email                 TEXT NOT NULL UNIQUE,
-  name                  TEXT NOT NULL,
-  password_hash         TEXT,                     -- NULL if OAuth-only user
+  id                    TEXT PRIMARY KEY,         -- nanoid(), e.g. "usr_abc123" or "anon_abc123"
+  email                 TEXT UNIQUE,              -- NULL for anonymous users
+  name                  TEXT NOT NULL DEFAULT 'Anonymous',
+  password_hash         TEXT,                     -- NULL if OAuth-only or anonymous
   role                  TEXT NOT NULL DEFAULT 'user', -- 'user' | 'admin'
-  plan                  TEXT NOT NULL DEFAULT 'free', -- 'free' | 'reader' | 'collector'
+  plan                  TEXT NOT NULL DEFAULT 'free', -- 'free' | 'reader' | 'collector' | 'anonymous'
+  is_anonymous          INTEGER NOT NULL DEFAULT 0,   -- 1 = anonymous trial user
+  conversions_total     INTEGER NOT NULL DEFAULT 0,   -- used for anonymous lifetime limit
   hf_api_key_encrypted  TEXT,                     -- AES-GCM encrypted BYOK key, nullable
   conversions_this_month INTEGER NOT NULL DEFAULT 0,
-  conversions_reset_at  TEXT NOT NULL,            -- ISO date, reset monthly
+  conversions_reset_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  polar_customer_id     TEXT,                     -- set after first Polar payment
   created_at            TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at            TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -74,6 +77,10 @@ CREATE TABLE jobs (
 CREATE INDEX idx_jobs_user_id ON jobs(user_id);
 CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX idx_users_is_anonymous ON users(is_anonymous);
+CREATE INDEX idx_users_polar_customer_id ON users(polar_customer_id);
+-- Used by cleanup cron to find expired anonymous users efficiently
+CREATE INDEX idx_users_anon_created ON users(created_at) WHERE is_anonymous = 1;
 ```
 
 ---
@@ -100,13 +107,27 @@ CREATE INDEX idx_templates_user_id ON templates(user_id);
 
 ---
 
+## 0003_anonymous.sql
+
+```sql
+-- No new tables needed — anonymous support is handled by columns
+-- added in 0001_initial.sql (is_anonymous, conversions_total, plan='anonymous').
+-- This migration only adds the partial index for cleanup efficiency
+-- if you ran 0001 without it.
+
+CREATE INDEX IF NOT EXISTS idx_users_anon_created
+  ON users(created_at) WHERE is_anonymous = 1;
+```
+
+---
+
 ## TypeScript Types (matching DB schema)
 
 ```typescript
 // src/lib/shared/types.ts
 
 export type UserRole = 'user' | 'admin';
-export type UserPlan = 'free' | 'reader' | 'collector';
+export type UserPlan = 'anonymous' | 'free' | 'reader' | 'collector';
 export type JobStatus =
   | 'queued'
   | 'processing'
@@ -179,13 +200,16 @@ export interface Job {
 
 export interface User {
   id: string;
-  email: string;
+  email: string | null;              // null for anonymous users
   name: string;
   role: UserRole;
   plan: UserPlan;
+  isAnonymous: boolean;
+  conversionsTotal: number;          // lifetime total — used for anonymous limit check
   hfApiKeyEncrypted: string | null;
   conversionsThisMonth: number;
   conversionsResetAt: string;
+  polarCustomerId: string | null;
   createdAt: string;
 }
 
@@ -280,6 +304,80 @@ function rowToJob(row: Record<string, unknown>): Job {
     layoutModel: row.layout_model as string,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
+  };
+}
+
+// ── Anonymous user helpers ────────────────────────────────────────
+
+export async function createAnonymousUser(db: D1Database): Promise<User> {
+  const id = `anon_${generateId('usr').slice(4)}`; // e.g. "anon_a3f2c1b4"
+  await db
+    .prepare(`
+      INSERT INTO users (id, name, plan, is_anonymous, conversions_reset_at)
+      VALUES (?, 'Anonymous', 'anonymous', 1, datetime('now'))
+    `)
+    .bind(id)
+    .run();
+  return (await getUserById(db, id))!;
+}
+
+export async function getUserById(db: D1Database, id: string): Promise<User | null> {
+  const row = await db
+    .prepare('SELECT * FROM users WHERE id = ?')
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!row) return null;
+  return rowToUser(row);
+}
+
+export async function claimAnonymousUser(
+  db: D1Database,
+  anonId: string,
+  opts: { email: string; name: string; passwordHash?: string }
+): Promise<void> {
+  // Converts anonymous user to real account, preserving their job history
+  await db
+    .prepare(`
+      UPDATE users
+      SET email = ?,
+          name = ?,
+          password_hash = ?,
+          plan = 'free',
+          is_anonymous = 0,
+          updated_at = datetime('now')
+      WHERE id = ? AND is_anonymous = 1
+    `)
+    .bind(opts.email, opts.name, opts.passwordHash ?? null, anonId)
+    .run();
+}
+
+export async function incrementConversionsTotal(db: D1Database, userId: string): Promise<void> {
+  await db
+    .prepare(`
+      UPDATE users
+      SET conversions_total = conversions_total + 1,
+          conversions_this_month = conversions_this_month + 1,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `)
+    .bind(userId)
+    .run();
+}
+
+function rowToUser(row: Record<string, unknown>): User {
+  return {
+    id: row.id as string,
+    email: row.email as string | null,
+    name: row.name as string,
+    role: row.role as UserRole,
+    plan: row.plan as UserPlan,
+    isAnonymous: row.is_anonymous === 1,
+    conversionsTotal: row.conversions_total as number,
+    hfApiKeyEncrypted: row.hf_api_key_encrypted as string | null,
+    conversionsThisMonth: row.conversions_this_month as number,
+    conversionsResetAt: row.conversions_reset_at as string,
+    polarCustomerId: row.polar_customer_id as string | null,
+    createdAt: row.created_at as string,
   };
 }
 ```

@@ -208,25 +208,46 @@ export function getSessionTokenFromCookies(cookieHeader: string | null): string 
 
 ```typescript
 import type { Handle } from '@sveltejs/kit';
-import { validateSessionToken, getSessionTokenFromCookies } from '$lib/server/auth';
+import { validateSessionToken, getSessionTokenFromCookies, generateSessionToken, createSession, setSessionCookie } from '$lib/server/auth';
+import { createAnonymousUser } from '$lib/server/db';
+
+// Routes where we should NOT auto-create an anonymous session
+// (avoids creating throwaway anon users for every bot/crawler hit)
+const ANON_SESSION_ROUTES = ['/editor', '/api/upload', '/api/job'];
 
 export const handle: Handle = async ({ event, resolve }) => {
   const token = getSessionTokenFromCookies(event.request.headers.get('cookie'));
 
   if (token) {
     const result = await validateSessionToken(event.platform!.env.DB, token);
-    if (result) {
-      event.locals.user = result.user;
-    } else {
-      event.locals.user = null;
-    }
+    event.locals.user = result?.user ?? null;
   } else {
     event.locals.user = null;
   }
 
-  return resolve(event);
+  const response = await resolve(event);
+
+  // Auto-create anonymous session only when a real interaction begins
+  // (upload or editor access), not on every page load
+  if (!event.locals.user) {
+    const path = event.url.pathname;
+    const shouldCreateAnon = ANON_SESSION_ROUTES.some(r => path.startsWith(r));
+
+    if (shouldCreateAnon) {
+      const anonUser = await createAnonymousUser(event.platform!.env.DB);
+      const sessionToken = generateSessionToken();
+      await createSession(event.platform!.env.DB, anonUser.id, sessionToken);
+      event.locals.user = anonUser;
+      // Set cookie on the response
+      response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
+    }
+  }
+
+  return response;
 };
 ```
+
+**Why lazy anonymous creation matters:** Creating an anonymous user on every `/` page load would flood D1 with bot traffic and make the cleanup cron expensive. By deferring creation until a real upload or editor interaction, each anonymous user record represents genuine engagement.
 
 ---
 
@@ -244,7 +265,6 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
   return { user: locals.user };
 };
 ```
-
 ```typescript
 // src/routes/(admin)/+layout.server.ts
 import { redirect, error } from '@sveltejs/kit';
@@ -305,4 +325,77 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const [saltHex, hashHex] = stored.split(':');
   // ... reverse the above process and compare
 }
+```
+
+---
+
+## Anonymous → Registered Account Claim Flow
+
+When an anonymous user completes a conversion and clicks "Download EPUB",
+they see a signup prompt. On successful signup, their anonymous account is
+**claimed** — converted in-place to a real account, preserving all job history.
+
+```
+Anonymous user sees "Create a free account to download"
+  → fills in email + password (or OAuth)
+  → POST /register with anonUserId in body (or derived from session)
+
+/register action:
+  1. Validate email not already taken
+  2. Hash password
+  3. claimAnonymousUser(db, locals.user.id, { email, name, passwordHash })
+     → UPDATE users SET email=?, name=?, password_hash=?, plan='free', is_anonymous=0
+     → All existing jobs remain (user_id unchanged)
+  4. Session cookie already valid — no new session needed
+  5. redirect(303, `/editor/${jobId}?download=true`)
+
+Editor page sees download=true query param
+  → immediately triggers EPUB download
+```
+
+**Key implementation detail:** `claimAnonymousUser()` does NOT create a new user
+row. It updates the existing `anon_*` row in-place. The `id` stays the same,
+which means all `jobs.user_id` foreign keys remain valid automatically.
+No data migration needed.
+
+### Register page must handle both flows
+
+```typescript
+// src/routes/(auth)/register/+page.server.ts
+export const actions = {
+  default: async ({ request, locals, platform }) => {
+    const form = await superValidate(request, zod(registerSchema));
+    if (!form.valid) return fail(400, { form });
+
+    const db = platform!.env.DB;
+    const { email, password, name } = form.data;
+
+    // Check if email already exists
+    const existing = await db
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .bind(email).first();
+    if (existing) return message(form, 'Email already in use', { status: 400 });
+
+    const passwordHash = await hashPassword(password);
+
+    if (locals.user?.isAnonymous) {
+      // Claim path — convert existing anonymous user
+      await claimAnonymousUser(db, locals.user.id, { email, name, passwordHash });
+    } else {
+      // Fresh signup — create new user
+      const id = generateId('usr');
+      await db.prepare(`
+        INSERT INTO users (id, email, name, password_hash, conversions_reset_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+      `).bind(id, email, name, passwordHash).run();
+      // Create new session
+      const token = generateSessionToken();
+      await createSession(db, id, token);
+      // Cookie set in hooks via locals — return token via header
+    }
+
+    const redirectTo = form.data.redirectTo ?? '/dashboard';
+    redirect(303, redirectTo);
+  }
+};
 ```

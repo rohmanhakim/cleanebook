@@ -98,7 +98,7 @@
 └──────────────────────────────────────────────────┘
 ```
 
-### Phase 5: Complete
+### Phase 5: Complete — Registered User
 ```
 ┌──────────────────────────────────────────────────┐
 │  ✓ Your EPUB is ready                           │
@@ -111,6 +111,26 @@
 │  [Save as "O'Reilly Books"]                      │
 └──────────────────────────────────────────────────┘
 ```
+
+### Phase 5: Complete — Anonymous User (conversion gate)
+```
+┌──────────────────────────────────────────────────┐
+│  ✓ Your EPUB is ready — looks great!            │
+│                                                  │
+│  [████████████████ EPUB Preview ████████████]   │
+│  Chapter 1 · Chapter 2 · Chapter 3...           │
+│                                                  │
+│  Create a free account to download              │
+│  Your conversion is saved — takes 10 seconds.   │
+│                                                  │
+│  [→ Create free account]  [Sign in]             │
+│                                                  │
+│  ✓ No credit card  ✓ 3 conversions/month free  │
+└──────────────────────────────────────────────────┘
+```
+
+The EPUB preview is visible to anonymous users — they can see the quality
+of the output before committing. The download is the gate, not the preview.
 
 ---
 

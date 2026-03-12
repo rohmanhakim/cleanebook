@@ -143,7 +143,8 @@ cleanebook/
 │                   └── +server.ts      # POST — workflow completion callback
 │
 ├── workers/
-│   └── ocr-pipeline.ts             # CF Workflow class (OcrPipeline)
+│   ├── ocr-pipeline.ts             # CF Workflow class (OcrPipeline)
+│   └── cleanup.ts                  # CF Cron handler — purge anonymous users + R2
 │
 ├── migrations/
 │   ├── 0001_initial.sql            # D1 initial schema

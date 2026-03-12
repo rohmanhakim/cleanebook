@@ -52,6 +52,9 @@ CleanEbook solves this with a two-layer approach:
 7. **Zod v3 only** — do not use Zod v4 API. See `STACK.md`.
 8. **shadcn-svelte components** — use existing shadcn components before writing custom UI.
 9. **Polar for billing** — no Stripe. Use `@polar-sh/sdk` for API calls and `@polar-sh/checkout` for embeddable checkout. Do NOT install `@polar-sh/nextjs` or `@polar-sh/astro`. See `ARCHITECTURE.md` Billing section.
+10. **Anonymous users are real DB rows** — anonymous visitors get a real `users` row with `is_anonymous=1` and `id: anon_*`. They are NOT identified by IP or a plain token. Their session cookie works identically to a registered user session. On signup, the row is updated in-place via `claimAnonymousUser()` — the `id` never changes. See `AUTH.md` and `DATABASE.md`.
+11. **EPUB download gates signup for anonymous** — anonymous users can upload, run OCR, and see the full EPUB preview. The download button is the only gate. Never block the editor or preview for anonymous users.
+12. **Cron cleanup is mandatory** — `workers/cleanup.ts` runs every 6 hours to purge anonymous users older than 48 hours and their R2 files. Always delete R2 objects BEFORE deleting D1 rows. See `ARCHITECTURE.md` cleanup section.
 
 ---
 

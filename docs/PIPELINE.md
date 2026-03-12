@@ -337,12 +337,21 @@ Configurable per job. Stored in `jobs.ocr_model` and `jobs.layout_model`.
 
 ```typescript
 export const PLAN_LIMITS = {
+  anonymous: {
+    conversionsTotal: 1,            // lifetime, not monthly
+    maxPagesPerPdf: 50,
+    canSaveTemplates: false,
+    canBatch: false,
+    serverSideRender: false,
+    canDownloadEpub: false,         // must sign up to download
+  },
   free: {
     conversionsPerMonth: 3,
     maxPagesPerPdf: 100,
     canSaveTemplates: false,
     canBatch: false,
     serverSideRender: false,
+    canDownloadEpub: true,
   },
   reader: {
     conversionsPerMonth: 40,
@@ -350,6 +359,7 @@ export const PLAN_LIMITS = {
     canSaveTemplates: true,
     canBatch: false,
     serverSideRender: true,
+    canDownloadEpub: true,
   },
   collector: {
     conversionsPerMonth: Infinity,
@@ -357,10 +367,12 @@ export const PLAN_LIMITS = {
     canSaveTemplates: true,
     canBatch: true,
     serverSideRender: true,
+    canDownloadEpub: true,
   },
 } as const;
 
 export const CLIENT_RENDER_THRESHOLD = 80; // pages; above this, use server-side render
 export const CONFIDENCE_THRESHOLD = 0.82;  // below this, page goes to review queue
 export const MAX_REVIEW_PAGES_AUTO_SKIP = 5; // if ≤ this many review pages, auto-notify
+export const ANONYMOUS_SESSION_TTL_HOURS = 48; // anonymous users purged after this
 ```

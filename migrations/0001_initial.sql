@@ -1,11 +1,13 @@
 -- Users
 CREATE TABLE users (
-  id                    TEXT PRIMARY KEY,         -- nanoid(), e.g. "usr_abc123"
-  email                 TEXT NOT NULL UNIQUE,
-  name                  TEXT NOT NULL,
-  password_hash         TEXT,                     -- NULL if OAuth-only user
+  id                    TEXT PRIMARY KEY,         -- nanoid(), e.g. "usr_abc123" or "anon_abc123"
+  email                 TEXT UNIQUE,              -- NULL for anonymous users
+  name                  TEXT NOT NULL DEFAULT 'Anonymous',
+  password_hash         TEXT,                     -- NULL if OAuth-only or anonymous
   role                  TEXT NOT NULL DEFAULT 'user', -- 'user' | 'admin'
-  plan                  TEXT NOT NULL DEFAULT 'free', -- 'free' | 'reader' | 'collector'
+  plan                  TEXT NOT NULL DEFAULT 'free', -- 'anonymous' | 'free' | 'reader' | 'collector'
+  is_anonymous          INTEGER NOT NULL DEFAULT 0,   -- 1 = anonymous trial user
+  conversions_total     INTEGER NOT NULL DEFAULT 0,   -- used for anonymous lifetime limit
   hf_api_key_encrypted  TEXT,                     -- AES-GCM encrypted BYOK key, nullable
   polar_customer_id     TEXT,                     -- Polar customer ID for billing
   conversions_this_month INTEGER NOT NULL DEFAULT 0,
@@ -61,4 +63,7 @@ CREATE TABLE jobs (
 CREATE INDEX idx_jobs_user_id ON jobs(user_id);
 CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX idx_users_is_anonymous ON users(is_anonymous);
 CREATE INDEX idx_users_polar_customer_id ON users(polar_customer_id);
+-- Used by cleanup cron to find expired anonymous users efficiently
+CREATE INDEX idx_users_anon_created ON users(created_at) WHERE is_anonymous = 1;
