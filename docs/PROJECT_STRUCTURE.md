@@ -153,10 +153,27 @@ cleanebook/
 │   ├── favicon.ico
 │   └── og-image.png
 │
+├── tests/
+│   ├── unit/                       # Vitest unit tests
+│   │   └── example.test.ts
+│   ├── integration/                # Integration tests (future)
+│   ├── e2e/                        # Playwright E2E tests
+│   │   └── landing.spec.ts
+│   └── helpers/                    # Test utilities (future)
+│       ├── mockPlatform.ts
+│       └── testData.ts
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                  # GitHub Actions CI/CD pipeline
+│
 ├── wrangler.jsonc                  # CF config (see ARCHITECTURE.md)
 ├── svelte.config.js
 ├── tsconfig.json
 ├── vite.config.ts
+├── vitest.config.ts                # Vitest configuration
+├── playwright.config.ts            # Playwright configuration
+├── postcss.config.js               # PostCSS with Tailwind CSS v4
 └── package.json
 ```
 

@@ -36,6 +36,7 @@ CleanEbook solves this with a two-layer approach:
 | `docs/API.md` | All server route endpoints, request/response shapes |
 | `docs/ADMIN.md` | Admin dashboard routes and data requirements |
 | `docs/CONVENTIONS.md` | Code style, naming, patterns to follow consistently |
+| `docs/TESTING.md` | Testing infrastructure |
 | `docs/learnings/` | Learning documents, you may run `tree docs/learnings` to explore these when you want to troubleshoot a problem |
 
 ---

@@ -47,6 +47,44 @@ The app will be available at http://localhost:5173/
 pnpm check
 ```
 
+## Testing
+
+### Unit Tests
+
+```bash
+# Run tests once
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+```
+
+### E2E Tests
+
+```bash
+# Run E2E tests
+pnpm test:e2e
+
+# Run E2E tests with UI
+pnpm test:e2e:ui
+```
+
+See `docs/TESTING.md` for detailed testing documentation.
+
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **On every PR**: Lint, typecheck, unit tests, E2E tests, preview deployment
+- **On main branch**: Full test suite + production deployment
+
+See `.github/workflows/ci.yml` for the pipeline configuration.
+
+### Required GitHub Secrets
+
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API token with Pages deploy permissions
+- `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare account ID
+
 ## Deployment
 
 Playbook scripts are provided for both local and production deployments. Each script runs migrations, builds the project, and deploys (or prepares for local dev).
@@ -188,7 +226,12 @@ src/
 │   ├── (admin)/     # Admin dashboard
 │   └── api/         # API endpoints
 ├── workers/        # Cloudflare Workflows
-└── migrations/     # D1 database migrations
+├── migrations/     # D1 database migrations
+└── app.css         # Global styles (Tailwind CSS v4)
+tests/
+├── unit/           # Vitest unit tests
+├── integration/    # Integration tests
+└── e2e/            # Playwright E2E tests
 ```
 
 ## Tech Stack
@@ -202,6 +245,8 @@ src/
 - **Auth:** @oslojs/crypto + arctic (no lucia)
 - **Validation:** Zod v3
 - **Billing:** Polar
+- **Testing:** Vitest + Playwright
+- **Styling:** Tailwind CSS v4
 
 ## Documentation
 
@@ -212,3 +257,4 @@ See `docs/` for detailed documentation:
 - `CONVENTIONS.md` — Code style guide
 - `DATABASE.md` — D1 schema and queries
 - `PIPELINE.md` — OCR pipeline details
+- `TESTING.md` — Testing infrastructure

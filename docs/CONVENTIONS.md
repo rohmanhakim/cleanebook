@@ -249,3 +249,97 @@ export function generateId(prefix: 'usr' | 'job' | 'tpl' | 'ses'): string {
  */
 export async function validateSessionToken(...) { ... }
 ```
+
+---
+
+## Testing
+
+### Test Files
+
+- Unit tests: `tests/unit/**/*.test.ts`
+- Integration tests: `tests/integration/**/*.test.ts`
+- E2E tests: `tests/e2e/**/*.spec.ts`
+
+### Test Naming
+
+```typescript
+// ✅ correct — descriptive test names
+describe('loginSchema', () => {
+  it('should validate valid credentials', () => {...});
+  it('should reject invalid email', () => {...});
+  it('should require password with at least 8 characters', () => {...});
+});
+
+// ❌ wrong — vague test names
+describe('loginSchema', () => {
+  it('works', () => {...});
+  it('test 1', () => {...});
+});
+```
+
+### Test Organization
+
+```typescript
+// Group related tests with describe blocks
+describe('Job creation', () => {
+  describe('validation', () => {
+    it('should require pdfKey', () => {...});
+    it('should require pdfFilename', () => {...});
+  });
+
+  describe('queue integration', () => {
+    it('should send job to queue', () => {...});
+  });
+});
+```
+
+### Mocking
+
+- Use `vi.fn()` for function mocks
+- Use `vi.spyOn()` for method spies
+- Create reusable mocks in `tests/helpers/`
+
+```typescript
+// tests/helpers/mockPlatform.ts
+export function createMockPlatform() {
+  return {
+    env: {
+      DB: createMockD1(),
+      R2: createMockR2(),
+      KV: createMockKV(),
+    },
+    context: {
+      waitUntil: vi.fn(),
+    },
+  };
+}
+```
+
+### E2E Test Patterns
+
+```typescript
+// Use page.goto() for navigation
+// Use expect(locator).toBeVisible() for assertions
+// Use data-testid attributes for stable selectors
+
+test('should submit contact form', async ({ page }) => {
+  await page.goto('/contact');
+  await page.fill('[data-testid="email-input"]', 'test@example.com');
+  await page.fill('[data-testid="message-input"]', 'Hello!');
+  await page.click('[data-testid="submit-button"]');
+  await expect(page.locator('[data-testid="success-message"]')).toBeVisible();
+});
+```
+
+### Running Tests
+
+```bash
+# Unit tests
+pnpm test              # Run once
+pnpm test:watch        # Watch mode
+
+# E2E tests
+pnpm test:e2e          # Run all E2E tests
+pnpm test:e2e:ui       # Run with Playwright UI
+```
+
