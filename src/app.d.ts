@@ -13,6 +13,8 @@ declare global {
 				// Secrets (CF Workers secrets, not in wrangler.jsonc)
 				HF_API_KEY: string;
 				COOKIE_SECRET: string;
+				POLAR_ACCESS_TOKEN: string;
+				POLAR_WEBHOOK_SECRET: string;
 			};
 			context: ExecutionContext;
 			caches: CacheStorage & { default: Cache };
@@ -25,6 +27,7 @@ declare global {
 				role: 'user' | 'admin';
 				plan: 'free' | 'reader' | 'collector';
 				hfApiKey: string | null;
+				polarCustomerId: string | null;
 			} | null;
 		}
 	}

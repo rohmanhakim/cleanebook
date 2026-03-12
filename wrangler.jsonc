@@ -1,18 +1,14 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "cleanebook",
-	"main": ".svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2024-09-23",
 	"compatibility_flags": ["nodejs_compat"],
-	"assets": {
-		"binding": "ASSETS",
-		"directory": ".svelte-kit/cloudflare"
-	},
+	"pages_build_output_dir": ".svelte-kit/cloudflare",
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "cleanebook-db",
-			"database_id": "REPLACE_WITH_REAL_ID"
+			"database_id": "41289d9c-8dd7-471d-bdd8-291d323f5057"
 		}
 	],
 	"r2_buckets": [
@@ -24,7 +20,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "KV",
-			"id": "REPLACE_WITH_REAL_ID"
+			"id": "8308b000230a492a835acb185ee1e154"
 		}
 	],
 	"queues": {
@@ -33,20 +29,6 @@
 				"binding": "QUEUE",
 				"queue": "cleanebook-jobs"
 			}
-		],
-		"consumers": [
-			{
-				"queue": "cleanebook-jobs",
-				"max_batch_size": 1,
-				"max_retries": 3
-			}
 		]
-	},
-	"workflows": [
-		{
-			"binding": "OCR_WORKFLOW",
-			"name": "ocr-pipeline",
-			"class_name": "OcrPipeline"
-		}
-	]
+	}
 }
