@@ -1,5 +1,57 @@
 # CleanEbook — Authentication
 
+## Development Gating (Basic Auth)
+
+During the development phase, the entire frontend is gated with HTTP Basic Authentication to prevent unauthorized access. This is separate from the user authentication system.
+
+### How It Works
+
+The `src/hooks.server.ts` checks for `BASIC_AUTH_USER` environment variable:
+- If set, all requests must include valid Basic Auth credentials
+- If not set, the gate is disabled and the site is publicly accessible
+
+### Configuration
+
+**Local Development** — Add to `.dev.vars`:
+```
+BASIC_AUTH_USER=your_username
+BASIC_AUTH_PASSWORD=your_password
+```
+
+**Production** — Set via wrangler for **both environments**:
+
+```bash
+source ~/.nvm/nvm.sh
+
+# For production environment (Git integration deployments)
+wrangler pages secret put BASIC_AUTH_USER
+wrangler pages secret put BASIC_AUTH_PASSWORD
+
+# For preview environment (direct upload deployments)
+wrangler pages secret put BASIC_AUTH_USER --env preview
+wrangler pages secret put BASIC_AUTH_PASSWORD --env preview
+```
+
+**Note**: Cloudflare Pages has separate `production` and `preview` environments. Secrets must be set for each environment separately. Direct uploads via `wrangler pages deploy` create preview deployments, so they use `preview` environment secrets.
+
+### Disabling the Gate
+
+When the application is ready for public access, remove the secrets:
+```bash
+source ~/.nvm/nvm.sh
+wrangler pages secret delete BASIC_AUTH_USER
+wrangler pages secret delete BASIC_AUTH_PASSWORD
+```
+
+### For AI Agents
+
+AI agents can access gated routes by including credentials in requests:
+```bash
+curl -u "username:password" https://cleanebook.pages.dev/api/...
+```
+
+---
+
 ## Important: No lucia
 
 `lucia` is deprecated. Do NOT install it. Auth is implemented manually using:

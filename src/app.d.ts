@@ -10,11 +10,14 @@ declare global {
 				QUEUE: Queue;
 				OCR_WORKFLOW: Workflow;
 				ASSETS: Fetcher;
-				// Secrets (CF Workers secrets, not in wrangler.jsonc)
-				HF_API_KEY: string;
-				COOKIE_SECRET: string;
-				POLAR_ACCESS_TOKEN: string;
-				POLAR_WEBHOOK_SECRET: string;
+			// Secrets (CF Workers secrets, not in wrangler.jsonc)
+			HF_API_KEY: string;
+			COOKIE_SECRET: string;
+			POLAR_ACCESS_TOKEN: string;
+			POLAR_WEBHOOK_SECRET: string;
+			// Basic Auth (development gating - remove in production when ready)
+			BASIC_AUTH_USER: string;
+			BASIC_AUTH_PASSWORD: string;
 			};
 			context: ExecutionContext;
 			caches: CacheStorage & { default: Cache };

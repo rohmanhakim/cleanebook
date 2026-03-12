@@ -110,7 +110,13 @@ The `wrangler d1 migrations apply` command uses the `database_name` from the con
 
 ## Deployment Playbooks
 
-Two playbook scripts are provided for consistent deployments. Each script copies the appropriate config to `wrangler.jsonc` before running commands.
+Three playbook scripts are provided for different deployment targets:
+
+| Script | Purpose | URL | Environment |
+|--------|---------|-----|-------------|
+| `deploy-local.sh` | Local development | `localhost:5173` | N/A (uses `.dev.vars`) |
+| `deploy-preview.sh` | Preview deployment | `xyz.cleanebook.pages.dev` | `preview` |
+| `deploy-prod.sh` | Production deployment | `cleanebook.pages.dev` | `production` |
 
 ### `scripts/deploy-local.sh`
 
@@ -126,19 +132,37 @@ chmod +x scripts/deploy-local.sh
 ./scripts/deploy-local.sh
 ```
 
+### `scripts/deploy-preview.sh`
+
+Runs preview deployment:
+1. Copies `wrangler.prod.jsonc` → `wrangler.jsonc`
+2. Runs D1 migrations against production database
+3. Builds SvelteKit
+4. Deploys to Cloudflare Pages (preview environment)
+
+Usage:
+```bash
+chmod +x scripts/deploy-preview.sh
+./scripts/deploy-preview.sh
+```
+
+**Note:** Preview deployments use `preview` environment secrets and create unique URLs.
+
 ### `scripts/deploy-prod.sh`
 
 Runs production deployment:
 1. Copies `wrangler.prod.jsonc` → `wrangler.jsonc`
 2. Runs D1 migrations against production database
 3. Builds SvelteKit
-4. Deploys to Cloudflare Pages
+4. Deploys to Cloudflare Pages with `--branch=master`
 
 Usage:
 ```bash
 chmod +x scripts/deploy-prod.sh
 ./scripts/deploy-prod.sh
 ```
+
+**Note:** Production deployments use `production` environment secrets.
 
 ### Why Playbook Scripts?
 

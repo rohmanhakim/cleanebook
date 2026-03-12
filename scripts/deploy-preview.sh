@@ -1,17 +1,22 @@
 #!/bin/bash
-# Deploy to production
-# Usage: ./scripts/deploy-prod.sh
+# Deploy to preview environment
+# Usage: ./scripts/deploy-preview.sh
 #
 # This script:
 # 1. Sets up wrangler.jsonc from wrangler.prod.jsonc
 # 2. Runs D1 migrations against production database
 # 3. Builds the SvelteKit application
-# 4. Deploys to Cloudflare Pages
+# 4. Deploys to Cloudflare Pages (preview environment)
+#
+# Note: Preview deployments use the "preview" environment secrets.
+# Make sure to set secrets for preview: 
+#   wrangler pages secret put BASIC_AUTH_USER --env preview
+#   wrangler pages secret put BASIC_AUTH_PASSWORD --env preview
 
 set -e
 
 echo "╔════════════════════════════════════════════╗"
-echo "║  CleanEbook Production Deployment Playbook ║"
+echo "║  CleanEbook Preview Deployment Playbook    ║"
 echo "╚════════════════════════════════════════════╝"
 echo ""
 
@@ -41,20 +46,19 @@ pnpm run build
 echo ""
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "[4/4] Deploying to Cloudflare Pages (production)..."
+echo "[4/4] Deploying to Cloudflare Pages (preview)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-npx wrangler pages deploy .svelte-kit/cloudflare --commit-dirty=true --branch=master
+npx wrangler pages deploy .svelte-kit/cloudflare --commit-dirty=true
 echo ""
 
 echo "╔════════════════════════════════════════════╗"
 echo "║            Deployment Complete!            ║"
 echo "╚════════════════════════════════════════════╝"
 echo ""
-echo "✅ Deployed to production environment!"
+echo "✅ Deployed to preview environment!"
 echo ""
-echo "URLs:"
-echo "  • Production: https://cleanebook.pages.dev"
-echo "  • Alias:      https://master.cleanebook.pages.dev"
+echo "The deployment URL will be shown above."
+echo "This is a preview deployment (not production)."
 echo ""
-echo "Note: Uses 'production' environment secrets."
+echo "Note: Uses 'preview' environment secrets."
 echo ""

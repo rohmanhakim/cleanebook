@@ -30,6 +30,8 @@ Required variables:
 - `COOKIE_SECRET` — 32-byte random string for session HMAC
 - `POLAR_ACCESS_TOKEN` — Polar billing access token (optional for MVP)
 - `POLAR_WEBHOOK_SECRET` — Polar webhook signing secret (optional for MVP)
+- `BASIC_AUTH_USER` — Username for development gating (remove in production)
+- `BASIC_AUTH_PASSWORD` — Password for development gating (remove in production)
 
 ### 3. Start Development Server
 
@@ -62,15 +64,37 @@ Set production secrets (one-time setup):
 
 ```bash
 source ~/.nvm/nvm.sh
-wrangler secret put HF_API_KEY
-wrangler secret put COOKIE_SECRET
-wrangler secret put POLAR_ACCESS_TOKEN
-wrangler secret put POLAR_WEBHOOK_SECRET
+
+# API keys and other secrets
+wrangler pages secret put HF_API_KEY
+wrangler pages secret put COOKIE_SECRET
+wrangler pages secret put POLAR_ACCESS_TOKEN
+wrangler pages secret put POLAR_WEBHOOK_SECRET
+
+# Basic Auth (development gating - remove when ready for public access)
+wrangler pages secret put BASIC_AUTH_USER
+wrangler pages secret put BASIC_AUTH_PASSWORD
+
+# IMPORTANT: Also set secrets for preview environment (used by direct uploads)
+wrangler pages secret put HF_API_KEY --env preview
+wrangler pages secret put COOKIE_SECRET --env preview
+wrangler pages secret put BASIC_AUTH_USER --env preview
+wrangler pages secret put BASIC_AUTH_PASSWORD --env preview
 ```
 
-### Local Deployment
+**Note**: Cloudflare Pages has separate `production` and `preview` environments. Direct uploads via `wrangler pages deploy` create preview deployments, so secrets must be set for both environments.
 
-Run the local playbook to set up your development environment:
+### Deployment Scripts
+
+Three deployment scripts are provided:
+
+| Script | Purpose | URL |
+|--------|---------|-----|
+| `deploy-local.sh` | Local development | `localhost:5173` |
+| `deploy-preview.sh` | Preview deployment | `xyz.cleanebook.pages.dev` |
+| `deploy-prod.sh` | Production deployment | `cleanebook.pages.dev` |
+
+#### Local Development
 
 ```bash
 chmod +x scripts/deploy-local.sh
@@ -88,9 +112,20 @@ Then start development:
 pnpm run dev
 ```
 
-### Production Deployment
+#### Preview Deployment
 
-Run the production playbook to deploy to Cloudflare:
+Preview deployments are useful for testing before releasing to production:
+
+```bash
+chmod +x scripts/deploy-preview.sh
+./scripts/deploy-preview.sh
+```
+
+This deploys to a unique preview URL (e.g., `abc123.cleanebook.pages.dev`).
+
+**Note:** Preview deployments use `preview` environment secrets.
+
+#### Production Deployment
 
 ```bash
 chmod +x scripts/deploy-prod.sh
@@ -101,9 +136,11 @@ This will:
 1. Copy `wrangler.prod.jsonc` → `wrangler.jsonc`
 2. Run D1 migrations against the production database
 3. Build the SvelteKit application
-4. Deploy to Cloudflare Pages
+4. Deploy to Cloudflare Pages production
 
 The app is live at: https://cleanebook.pages.dev
+
+**Note:** Production deployments use `production` environment secrets.
 
 ### Configuration Files
 
