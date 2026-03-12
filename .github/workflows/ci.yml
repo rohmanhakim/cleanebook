@@ -85,6 +85,9 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run E2E tests
+        env:
+          BASIC_AUTH_USER: ${{ vars.BASIC_AUTH_USER }}
+          BASIC_AUTH_PASSWORD: ${{ vars.BASIC_AUTH_PASSWORD }}
         run: pnpm test:e2e
 
       - name: Upload Playwright report

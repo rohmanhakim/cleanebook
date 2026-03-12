@@ -8,13 +8,15 @@ import type { Handle } from '@sveltejs/kit';
 export const handle: Handle = async ({ event, resolve }) => {
 	// Basic Auth gating - only active if BASIC_AUTH_USER is configured
 	// Remove BASIC_AUTH_USER and BASIC_AUTH_PASSWORD secrets to disable
+	// Check both CF bindings (production) and process.env (dev/CI)
 	const platform = event.platform;
-	const basicAuthUser = platform?.env?.BASIC_AUTH_USER;
+	const basicAuthUser = platform?.env?.BASIC_AUTH_USER ?? process.env.BASIC_AUTH_USER;
+	const basicAuthPassword = platform?.env?.BASIC_AUTH_PASSWORD ?? process.env.BASIC_AUTH_PASSWORD;
 	
-	if (basicAuthUser) {
+	if (basicAuthUser && basicAuthPassword) {
 		const authHeader = event.request.headers.get('Authorization');
 		
-		if (!authHeader || !isValidBasicAuth(authHeader, platform!.env)) {
+		if (!authHeader || !isValidBasicAuth(authHeader, basicAuthUser, basicAuthPassword)) {
 			// Return 401 with WWW-Authenticate header to trigger browser login
 			return new Response(null, {
 				status: 401,
@@ -43,7 +45,8 @@ export const handle: Handle = async ({ event, resolve }) => {
  */
 function isValidBasicAuth(
 	authHeader: string,
-	env: { BASIC_AUTH_USER: string; BASIC_AUTH_PASSWORD: string }
+	expectedUser: string,
+	expectedPassword: string
 ): boolean {
 	if (!authHeader.startsWith('Basic ')) {
 		return false;
@@ -55,8 +58,8 @@ function isValidBasicAuth(
 		const [username, password] = credentials.split(':');
 
 		return (
-			username === env.BASIC_AUTH_USER &&
-			password === env.BASIC_AUTH_PASSWORD
+			username === expectedUser &&
+			password === expectedPassword
 		);
 	} catch {
 		return false;
