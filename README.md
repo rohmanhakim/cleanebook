@@ -47,7 +47,9 @@ pnpm check
 
 ## Deployment
 
-### Initial Setup
+Playbook scripts are provided for both local and production deployments. Each script runs migrations, builds the project, and deploys (or prepares for local dev).
+
+### Initial Setup (One-time)
 
 The following Cloudflare resources were created:
 - **D1 Database**: `cleanebook-db`
@@ -56,30 +58,81 @@ The following Cloudflare resources were created:
 - **Queue**: `cleanebook-jobs`
 - **Pages Project**: `cleanebook`
 
-### Deploy to Production
+Set production secrets (one-time setup):
 
 ```bash
 source ~/.nvm/nvm.sh
-pnpm run build
-wrangler pages deploy .svelte-kit/cloudflare --commit-dirty=true
-```
-
-The app is live at: https://cleanebook.pages.dev
-
-### Run Database Migrations
-
-```bash
-source ~/.nvm/nvm.sh
-wrangler d1 migrations apply cleanebook-db
-```
-
-### Set Production Secrets
-
-```bash
 wrangler secret put HF_API_KEY
 wrangler secret put COOKIE_SECRET
 wrangler secret put POLAR_ACCESS_TOKEN
 wrangler secret put POLAR_WEBHOOK_SECRET
+```
+
+### Local Deployment
+
+Run the local playbook to set up your development environment:
+
+```bash
+chmod +x scripts/deploy-local.sh
+./scripts/deploy-local.sh
+```
+
+This will:
+1. Copy `wrangler.dev.jsonc` → `wrangler.jsonc`
+2. Run D1 migrations against the local database
+3. Build the SvelteKit application
+4. Print instructions for starting the dev server
+
+Then start development:
+```bash
+pnpm run dev
+```
+
+### Production Deployment
+
+Run the production playbook to deploy to Cloudflare:
+
+```bash
+chmod +x scripts/deploy-prod.sh
+./scripts/deploy-prod.sh
+```
+
+This will:
+1. Copy `wrangler.prod.jsonc` → `wrangler.jsonc`
+2. Run D1 migrations against the production database
+3. Build the SvelteKit application
+4. Deploy to Cloudflare Pages
+
+The app is live at: https://cleanebook.pages.dev
+
+### Configuration Files
+
+The project uses two configuration files:
+
+| File | Purpose |
+|------|---------|
+| `wrangler.dev.jsonc` | Local development (uses local D1, R2, KV) |
+| `wrangler.prod.jsonc` | Production (uses real Cloudflare resource IDs) |
+
+The playbook scripts copy the appropriate config to `wrangler.jsonc` (which is gitignored).
+
+### Manual Commands
+
+If you need to run steps individually:
+
+```bash
+# Set up config first
+cp wrangler.dev.jsonc wrangler.jsonc   # For local
+# OR
+cp wrangler.prod.jsonc wrangler.jsonc  # For production
+
+# Database migrations
+npx wrangler d1 migrations apply cleanebook-db --local   # Local D1
+npx wrangler d1 migrations apply cleanebook-db --remote  # Production D1
+
+# Build and deploy
+pnpm run build
+npx wrangler pages deploy .svelte-kit/cloudflare --commit-dirty=true
 ```
 
 ## Project Structure

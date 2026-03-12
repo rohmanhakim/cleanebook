@@ -14,6 +14,7 @@ node_modules/
 
 # Wrangler
 .wrangler/
+wrangler.jsonc
 
 # IDE
 .idea/
