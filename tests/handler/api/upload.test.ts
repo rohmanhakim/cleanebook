@@ -80,7 +80,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });
@@ -117,7 +116,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });
@@ -150,7 +148,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });
@@ -186,7 +183,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });
@@ -221,7 +217,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });
@@ -268,7 +263,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });
@@ -306,7 +300,6 @@ describe('Upload API Handler Tests', () => {
             R2: env.R2,
             KV: env.KV,
             QUEUE: env.QUEUE,
-            VITEST: true,
           },
         },
       });

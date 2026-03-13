@@ -13,9 +13,6 @@ function bufferToArray(buffer: Buffer): number[] {
 }
 
 export default defineWorkersConfig(async () => {
-  // Set VITEST env var to disable Basic Auth in tests
-  process.env.VITEST = 'true';
-
   // Read all migrations in the `migrations` directory
   const migrationsPath = path.join(__dirname, 'migrations');
   const migrations = await readD1Migrations(migrationsPath);

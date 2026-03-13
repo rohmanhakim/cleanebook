@@ -32,8 +32,6 @@ declare module 'cloudflare:test' {
     FIXTURE_PDF_10PAGES: number[];
     FIXTURE_PDF_51PAGES: number[];
     FIXTURE_NOT_A_PDF: number[];
-    // Test-only flag to disable Basic Auth
-    VITEST: boolean;
   };
 
   export function applyD1Migrations(

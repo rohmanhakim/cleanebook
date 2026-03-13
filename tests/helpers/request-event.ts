@@ -31,7 +31,6 @@ export interface TestPlatformEnv {
   R2: R2Bucket;
   KV: KVNamespace;
   QUEUE: Queue;
-  VITEST?: boolean;
   [key: string]: unknown;
 }
 
