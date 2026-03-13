@@ -1,13 +1,10 @@
 <!--
-Document Version: 1.1.0
+Document Version: 1.2.0
 Last Updated: 2026-03-13
 Source Commits:
-  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+  - 362da1d5753cfcff338f6e8bd15e5c54394cb584 (Task 1D - Database Helpers)
 Changes:
-  - Updated tests/ directory structure with new auth test files
-  - Added D1 migration setup for integration tests section
-  - Added readD1Migrations/applyD1Migrations configuration
-  - Updated types.d.ts with TEST_MIGRATIONS binding
+  - Added db.test.ts for database helper integration tests
 -->
 # CleanEbook — Testing Infrastructure
 
@@ -41,6 +38,7 @@ tests/
 │   ├── apply-migrations.ts     # D1 migration setup helper
 │   ├── auth.test.ts            # Auth integration tests (session CRUD)
 │   ├── bindings.test.ts        # CF bindings tests
+│   ├── db.test.ts              # Database helper tests (Job, User CRUD)
 │   └── types.d.ts              # TypeScript definitions for cloudflare:test
 ├── e2e/                        # Playwright E2E tests
 │   └── landing.spec.ts         # Landing page tests

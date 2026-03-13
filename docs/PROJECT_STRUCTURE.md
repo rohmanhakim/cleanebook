@@ -1,16 +1,10 @@
 <!--
-Document Version: 1.1.0
+Document Version: 1.2.0
 Last Updated: 2026-03-13
 Source Commits:
-  - 00b4f075cc66b0f6506d5e96628d442c53c74a6b (Task 1B - Anonymous User Types)
-  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+  - 362da1d5753cfcff338f6e8bd15e5c54394cb584 (Task 1D - Database Helpers)
 Changes:
-  - Updated tests/ directory structure with new auth test files
-  - Added tests/integration/apply-migrations.ts
-  - Added tests/integration/auth.test.ts
-  - Added tests/unit/auth.test.ts
-  - Added tests/unit/marketing/ component tests
-  - Noted vitest.integration.config.ts D1 migration setup
+  - Added tests/integration/db.test.ts
 -->
 # CleanEbook — Project Structure
 
@@ -180,6 +174,7 @@ cleanebook/
 │   │   ├── apply-migrations.ts     # D1 migration setup helper
 │   │   ├── auth.test.ts            # Auth integration tests (session CRUD)
 │   │   ├── bindings.test.ts        # CF bindings tests
+│   │   ├── db.test.ts              # Database helper tests (Job, User CRUD)
 │   │   └── types.d.ts              # TypeScript definitions for cloudflare:test
 │   ├── e2e/                        # Playwright E2E tests
 │   │   └── landing.spec.ts

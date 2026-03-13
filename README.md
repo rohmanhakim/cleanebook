@@ -52,11 +52,18 @@ pnpm check
 ### Unit Tests
 
 ```bash
-# Run tests once
-pnpm test
+# Run unit tests once
+pnpm test:unit
 
-# Run tests in watch mode
-pnpm test:watch
+# Run unit tests in watch mode
+pnpm test:unit --watch
+```
+
+### Integration Tests
+
+```bash
+# Run integration tests (requires Cloudflare Workers pool)
+pnpm test:integration
 ```
 
 ### E2E Tests
@@ -67,6 +74,12 @@ pnpm test:e2e
 
 # Run E2E tests with UI
 pnpm test:e2e:ui
+```
+
+### Run All Tests
+
+```bash
+pnpm test
 ```
 
 See `docs/TESTING.md` for detailed testing documentation.
