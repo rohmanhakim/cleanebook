@@ -1,12 +1,21 @@
 // Plan limits and application constants
 
 export const PLAN_LIMITS = {
+	anonymous: {
+		conversionsTotal: 1,
+		maxPagesPerPdf: 50,
+		canSaveTemplates: false,
+		canBatch: false,
+		serverSideRender: false,
+		canDownloadEpub: false,
+	},
 	free: {
 		conversionsPerMonth: 3,
 		maxPagesPerPdf: 100,
 		canSaveTemplates: false,
 		canBatch: false,
 		serverSideRender: false,
+		canDownloadEpub: true,
 	},
 	reader: {
 		conversionsPerMonth: 40,
@@ -14,6 +23,7 @@ export const PLAN_LIMITS = {
 		canSaveTemplates: true,
 		canBatch: false,
 		serverSideRender: true,
+		canDownloadEpub: true,
 	},
 	collector: {
 		conversionsPerMonth: Infinity,
@@ -21,6 +31,7 @@ export const PLAN_LIMITS = {
 		canSaveTemplates: true,
 		canBatch: true,
 		serverSideRender: true,
+		canDownloadEpub: true,
 	},
 } as const;
 

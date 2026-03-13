@@ -1,7 +1,7 @@
 // TypeScript types matching DB schema
 
 export type UserRole = 'user' | 'admin';
-export type UserPlan = 'free' | 'reader' | 'collector';
+export type UserPlan = 'anonymous' | 'free' | 'reader' | 'collector';
 export type JobStatus =
 	| 'queued'
 	| 'processing'
@@ -89,9 +89,11 @@ export interface User {
 	name: string;
 	role: UserRole;
 	plan: UserPlan;
+	isAnonymous: boolean;
 	hfApiKeyEncrypted: string | null;
 	polarCustomerId: string | null;
 	conversionsThisMonth: number;
+	conversionsTotal: number;
 	conversionsResetAt: string;
 	createdAt: string;
 }
