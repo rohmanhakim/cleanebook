@@ -10,7 +10,11 @@ const config = {
 				include: ['/*'],
 				exclude: ['<all>']
 			}
-		})
+		}),
+		alias: {
+      		'$routes': './src/routes',
+      		'$routes/*': './src/routes/*' // Optional, for matching directory contents
+    	}
 	}
 };
 

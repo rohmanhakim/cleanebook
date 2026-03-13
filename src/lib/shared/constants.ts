@@ -1,5 +1,8 @@
 // Plan limits and application constants
 
+// File upload limits
+export const MAX_PDF_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+
 export const PLAN_LIMITS = {
   anonymous: {
     conversionsTotal: 1,

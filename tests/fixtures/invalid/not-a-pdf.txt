@@ -1,0 +1,28 @@
+Chapter 1. The Basics
+PostgreSQL is an extremely powerful piece of software that introduces
+features you may not have seen before. Some of the features are also present
+in other well-known database engines, but under different names. This
+chapter lays out the main concepts you should know when starting to attack
+PostgreSQL documentation, and mentions some related terms in other
+databases.
+We begin by pointing you to resources for downloading and installing
+PostgreSQL. Next, we provide an overview of indispensable administration
+tools followed by a review of PostgreSQL nomenclature. PostgreSQL 10 was
+recently released. We’ll highlight some of the new features therein. We close
+with resources to turn to when you need additional guidance and to submit
+bug reports.
+Why PostgreSQL?
+PostgreSQL is an enterprise-class relational database management system, on
+par with the very best proprietary database systems: Oracle, Microsoft SQL
+Server, and IBM DB2, just to name a few. PostgreSQL is special because it’s
+not just a database: it’s also an application platform, and an impressive one at
+that.
+PostgreSQL is fast. In benchmarks, PostgreSQL either exceeds or matches
+the performance of many other databases, both open source and proprietary.
+PostgreSQL invites you to write stored procedures and functions in numerous
+programming languages. In addition to the prepackaged languages of C,
+SQL, and PL/pgSQL, you can easily enable support for additional languages
+such as PL/Perl, PL/Python, PL/V8 (aka PL/JavaScript), PL/Ruby, and PL/R.
+This support for a wide variety of languages allows you to choose the
+language with constructs that can best solve the problem at hand. For
+11

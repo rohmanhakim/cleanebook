@@ -1,3 +1,8 @@
+/**
+ * Vitest configuration for Handler tests
+ * Tests SvelteKit route handlers directly with real CF bindings
+ * Does NOT use SELF.fetch() - calls handlers directly to avoid CSRF issues
+ */
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { defineWorkersConfig, readD1Migrations } from '@cloudflare/vitest-pool-workers/config';
@@ -9,7 +14,6 @@ function bufferToArray(buffer: Buffer): number[] {
 
 export default defineWorkersConfig(async () => {
   // Set VITEST env var to disable Basic Auth in tests
-  // This is checked in hooks.server.ts
   process.env.VITEST = 'true';
 
   // Read all migrations in the `migrations` directory
@@ -27,13 +31,13 @@ export default defineWorkersConfig(async () => {
 
   return {
     test: {
-      include: ['tests/integration/**/*.test.ts'],
+      include: ['tests/handler/**/*.test.ts'],
       globals: true,
       setupFiles: ['./tests/integration/apply-migrations.ts'],
       poolOptions: {
         workers: {
-          // Note: We don't use 'main' here since we're testing bindings directly
-          // Handler tests use vitest.handler.config.ts
+          // Note: We don't use 'main' here since we're testing handlers directly
+          // We just need the CF bindings (D1, R2, KV)
           wrangler: { configPath: './wrangler.dev.jsonc' },
           miniflare: {
             bindings: {
@@ -50,7 +54,7 @@ export default defineWorkersConfig(async () => {
     },
     resolve: {
       alias: {
-        $lib: path.join(__dirname, 'src/lib'),
+        $lib: path.resolve('./src/lib'),
       },
     },
   };

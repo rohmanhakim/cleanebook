@@ -18,6 +18,8 @@ declare global {
         // Basic Auth (development gating - remove in production when ready)
         BASIC_AUTH_USER: string;
         BASIC_AUTH_PASSWORD: string;
+        // Test-only bindings (only present during Vitest runs)
+        VITEST?: boolean;
       };
       context: ExecutionContext;
       caches: CacheStorage & { default: Cache };

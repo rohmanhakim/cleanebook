@@ -1,26 +1,57 @@
 <!--
-Document Version: 1.2.0
+Document Version: 1.3.0
 Last Updated: 2026-03-13
 Source Commits:
   - 362da1d5753cfcff338f6e8bd15e5c54394cb584 (Task 1D - Database Helpers)
+  - Task 1E - Upload API (three-layer testing architecture)
 Changes:
-  - Added db.test.ts for database helper integration tests
+  - Added three-layer testing architecture (Unit → Handler → E2E)
+  - Added handler tests section
+  - Updated integration tests to focus on bindings only
+  - Added note about avoiding SELF.fetch()
 -->
 # CleanEbook — Testing Infrastructure
 
 ## Overview
 
-CleanEbook uses a three-tier testing approach:
-- **Unit Tests** — Fast, isolated tests for utilities, shared code, and Svelte components
-- **Integration Tests** — Tests for server-side functions with real CF bindings
-- **E2E Tests** — Full browser tests for critical user flows
+CleanEbook uses a **three-layer testing architecture** to avoid issues with the Cloudflare Workers runtime and SvelteKit's CSRF protection:
+
+```
+                ┌─────────────────────────┐
+                │ 1. Unit Tests           │
+                │ Pure business logic     │
+                │ No SvelteKit            │
+                └───────────┬─────────────┘
+                            │
+                ┌───────────▼─────────────┐
+                │ 2. Handler Tests        │
+                │ SvelteKit route logic   │
+                │ Call POST/GET directly  │
+                └───────────┬─────────────┘
+                            │
+                ┌───────────▼─────────────┐
+                │ 3. E2E Tests            │
+                │ Real Worker + browser   │
+                │ Playwright              │
+                └─────────────────────────┘
+```
+
+**Key insight:** We avoid `SELF.fetch()` integration tests because they combine too many moving parts (Worker runtime, SvelteKit adapter, CSRF, hooks) and cause hard-to-debug hangs.
+
+### Test Distribution
+
+A healthy project usually looks like:
+- **Unit tests:** ~70-80%
+- **Handler tests:** ~15-25%
+- **E2E tests:** ~5-10%
 
 ## Test Stack
 
 | Tool | Purpose | Config File |
 |------|---------|-------------|
 | Vitest | Unit & component tests (jsdom) | `vitest.config.ts` |
-| @cloudflare/vitest-pool-workers | Integration tests with CF bindings | `vitest.integration.config.ts` |
+| Vitest + Workers Pool | Handler tests with CF bindings | `vitest.handler.config.ts` |
+| Vitest + Workers Pool | Integration tests (bindings only) | `vitest.integration.config.ts` |
 | @testing-library/svelte | Component testing utilities | — |
 | Playwright | E2E browser tests | `playwright.config.ts` |
 
