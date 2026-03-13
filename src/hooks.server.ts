@@ -6,11 +6,11 @@
  */
 import type { Handle } from '@sveltejs/kit';
 import {
-	validateSessionToken,
-	getSessionTokenFromCookies,
-	generateSessionToken,
-	createSession,
-	setSessionCookie
+  validateSessionToken,
+  getSessionTokenFromCookies,
+  generateSessionToken,
+  createSession,
+  setSessionCookie,
 } from '$lib/server/auth';
 import { createAnonymousUser } from '$lib/server/db';
 
@@ -19,87 +19,87 @@ import { createAnonymousUser } from '$lib/server/db';
 const ANON_SESSION_ROUTES = ['/editor', '/api/upload', '/api/job'];
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Basic Auth gating - only active if BASIC_AUTH_USER is configured
-	// Remove BASIC_AUTH_USER and BASIC_AUTH_PASSWORD secrets to disable
-	// Check both CF bindings (production) and process.env (dev/CI)
-	const platform = event.platform;
-	const basicAuthUser = platform?.env?.BASIC_AUTH_USER ?? process.env.BASIC_AUTH_USER;
-	const basicAuthPassword = platform?.env?.BASIC_AUTH_PASSWORD ?? process.env.BASIC_AUTH_PASSWORD;
+  // Basic Auth gating - only active if BASIC_AUTH_USER is configured
+  // Remove BASIC_AUTH_USER and BASIC_AUTH_PASSWORD secrets to disable
+  // Check both CF bindings (production) and process.env (dev/CI)
+  const platform = event.platform;
+  const basicAuthUser = platform?.env?.BASIC_AUTH_USER ?? process.env.BASIC_AUTH_USER;
+  const basicAuthPassword = platform?.env?.BASIC_AUTH_PASSWORD ?? process.env.BASIC_AUTH_PASSWORD;
 
-	if (basicAuthUser && basicAuthPassword) {
-		const authHeader = event.request.headers.get('Authorization');
+  if (basicAuthUser && basicAuthPassword) {
+    const authHeader = event.request.headers.get('Authorization');
 
-		if (!authHeader || !isValidBasicAuth(authHeader, basicAuthUser, basicAuthPassword)) {
-			// Return 401 with WWW-Authenticate header to trigger browser login
-			return new Response(null, {
-				status: 401,
-				headers: {
-					'WWW-Authenticate': 'Basic realm="CleanEbook Development", charset="UTF-8"'
-				}
-			});
-		}
-	}
+    if (!authHeader || !isValidBasicAuth(authHeader, basicAuthUser, basicAuthPassword)) {
+      // Return 401 with WWW-Authenticate header to trigger browser login
+      return new Response(null, {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': 'Basic realm="CleanEbook Development", charset="UTF-8"',
+        },
+      });
+    }
+  }
 
-	// Session validation - check for existing session cookie
-	const token = getSessionTokenFromCookies(event.request.headers.get('cookie'));
+  // Session validation - check for existing session cookie
+  const token = getSessionTokenFromCookies(event.request.headers.get('cookie'));
 
-	if (token && platform?.env?.DB) {
-		const result = await validateSessionToken(platform.env.DB, token);
-		event.locals.user = result?.user ?? null;
-	} else {
-		event.locals.user = null;
-	}
+  if (token && platform?.env?.DB) {
+    const result = await validateSessionToken(platform.env.DB, token);
+    event.locals.user = result?.user ?? null;
+  } else {
+    event.locals.user = null;
+  }
 
-	// Resolve the response first
-	const response = await resolve(event);
+  // Resolve the response first
+  const response = await resolve(event);
 
-	// Lazy anonymous user creation - only on routes that represent real interactions
-	// This prevents flooding D1 with bot traffic from marketing page hits
-	if (!event.locals.user && platform?.env?.DB) {
-		const path = event.url.pathname;
-		const shouldCreateAnon = ANON_SESSION_ROUTES.some((r) => path.startsWith(r));
+  // Lazy anonymous user creation - only on routes that represent real interactions
+  // This prevents flooding D1 with bot traffic from marketing page hits
+  if (!event.locals.user && platform?.env?.DB) {
+    const path = event.url.pathname;
+    const shouldCreateAnon = ANON_SESSION_ROUTES.some((r) => path.startsWith(r));
 
-		if (shouldCreateAnon) {
-			try {
-				// Create anonymous user and session
-				const anonUser = await createAnonymousUser(platform.env.DB);
-				const sessionToken = generateSessionToken();
-				await createSession(platform.env.DB, anonUser.id, sessionToken);
+    if (shouldCreateAnon) {
+      try {
+        // Create anonymous user and session
+        const anonUser = await createAnonymousUser(platform.env.DB);
+        const sessionToken = generateSessionToken();
+        await createSession(platform.env.DB, anonUser.id, sessionToken);
 
-				// Set user in locals for this request
-				event.locals.user = anonUser;
+        // Set user in locals for this request
+        event.locals.user = anonUser;
 
-				// Set cookie on the response
-				response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
-			} catch (error) {
-				// Log but don't fail the request - user will remain null
-				console.error('Failed to create anonymous user:', error);
-			}
-		}
-	}
+        // Set cookie on the response
+        response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
+      } catch (error) {
+        // Log but don't fail the request - user will remain null
+        console.error('Failed to create anonymous user:', error);
+      }
+    }
+  }
 
-	return response;
+  return response;
 };
 
 /**
  * Validates Basic Auth credentials from the Authorization header
  */
 function isValidBasicAuth(
-	authHeader: string,
-	expectedUser: string,
-	expectedPassword: string
+  authHeader: string,
+  expectedUser: string,
+  expectedPassword: string
 ): boolean {
-	if (!authHeader.startsWith('Basic ')) {
-		return false;
-	}
+  if (!authHeader.startsWith('Basic ')) {
+    return false;
+  }
 
-	try {
-		const base64Credentials = authHeader.slice(6);
-		const credentials = atob(base64Credentials);
-		const [username, password] = credentials.split(':');
+  try {
+    const base64Credentials = authHeader.slice(6);
+    const credentials = atob(base64Credentials);
+    const [username, password] = credentials.split(':');
 
-		return username === expectedUser && password === expectedPassword;
-	} catch {
-		return false;
-	}
+    return username === expectedUser && password === expectedPassword;
+  } catch {
+    return false;
+  }
 }

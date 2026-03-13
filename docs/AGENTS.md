@@ -15,6 +15,7 @@ converters) produce garbled output because they cannot distinguish body content 
 page chrome (headers, footers, page numbers), figures, captions, and code blocks.
 
 CleanEbook solves this with a two-layer approach:
+
 1. User defines semantic region rules on a sample page (chrome, content, heading, figure, etc.)
 2. A heuristic + AI pipeline applies those rules to every page automatically, flagging
    low-confidence pages for user review instead of silently failing.
@@ -23,21 +24,21 @@ CleanEbook solves this with a two-layer approach:
 
 ## Document Index
 
-| File | What it covers |
-|---|---|
-| `docs/AGENTS.md` | This file — master context and index |
-| `docs/ARCHITECTURE.md` | Full system architecture, CF stack, data flow |
-| `docs/STACK.md` | All dependencies with exact verified versions |
-| `docs/PROJECT_STRUCTURE.md` | Directory layout, file naming conventions |
-| `docs/DATABASE.md` | D1 schema, all tables, indexes, queries |
-| `docs/PIPELINE.md` | OCR pipeline, heuristic matching, CF Workflow steps |
-| `docs/UI.md` | Route structure, page descriptions, component map |
-| `docs/AUTH.md` | Session-based auth with oslojs + arctic, no lucia |
-| `docs/API.md` | All server route endpoints, request/response shapes |
-| `docs/ADMIN.md` | Admin dashboard routes and data requirements |
-| `docs/CONVENTIONS.md` | Code style, naming, patterns to follow consistently |
-| `docs/TESTING.md` | Testing infrastructure |
-| `docs/learnings/` | Learning documents, you may run `tree docs/learnings` to explore these when you want to troubleshoot a problem |
+| File                        | What it covers                                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `docs/AGENTS.md`            | This file — master context and index                                                                           |
+| `docs/ARCHITECTURE.md`      | Full system architecture, CF stack, data flow                                                                  |
+| `docs/STACK.md`             | All dependencies with exact verified versions                                                                  |
+| `docs/PROJECT_STRUCTURE.md` | Directory layout, file naming conventions                                                                      |
+| `docs/DATABASE.md`          | D1 schema, all tables, indexes, queries                                                                        |
+| `docs/PIPELINE.md`          | OCR pipeline, heuristic matching, CF Workflow steps                                                            |
+| `docs/UI.md`                | Route structure, page descriptions, component map                                                              |
+| `docs/AUTH.md`              | Session-based auth with oslojs + arctic, no lucia                                                              |
+| `docs/API.md`               | All server route endpoints, request/response shapes                                                            |
+| `docs/ADMIN.md`             | Admin dashboard routes and data requirements                                                                   |
+| `docs/CONVENTIONS.md`       | Code style, naming, patterns to follow consistently                                                            |
+| `docs/TESTING.md`           | Testing infrastructure                                                                                         |
+| `docs/learnings/`           | Learning documents, you may run `tree docs/learnings` to explore these when you want to troubleshoot a problem |
 
 ---
 
@@ -55,6 +56,7 @@ CleanEbook solves this with a two-layer approach:
 10. **Anonymous users are real DB rows** — anonymous visitors get a real `users` row with `is_anonymous=1` and `id: anon_*`. They are NOT identified by IP or a plain token. Their session cookie works identically to a registered user session. On signup, the row is updated in-place via `claimAnonymousUser()` — the `id` never changes. See `AUTH.md` and `DATABASE.md`.
 11. **EPUB download gates signup for anonymous** — anonymous users can upload, run OCR, and see the full EPUB preview. The download button is the only gate. Never block the editor or preview for anonymous users.
 12. **Cron cleanup is mandatory** — `workers/cleanup.ts` runs every 6 hours to purge anonymous users older than 48 hours and their R2 files. Always delete R2 objects BEFORE deleting D1 rows. See `ARCHITECTURE.md` cleanup section.
+13. **2-space indentation enforced by Prettier** — run `pnpm format` before committing. All code must pass `pnpm lint` and `pnpm format:check`. See `CONVENTIONS.md` for linting/formatting rules.
 
 ---
 

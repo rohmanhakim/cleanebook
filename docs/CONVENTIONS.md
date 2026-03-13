@@ -1,5 +1,45 @@
 # CleanEbook — Code Conventions
 
+## Linting & Formatting
+
+This project uses **ESLint** for code quality and **Prettier** for formatting.
+
+### 2-Space Indentation
+
+All code uses **2-space indentation** enforced by Prettier. This is non-negotiable.
+
+### Running Lint and Format
+
+```bash
+# Check for linting errors
+pnpm lint
+
+# Auto-fix linting errors
+pnpm lint:fix
+
+# Format TypeScript and Svelte files
+pnpm format
+
+# Check formatting without writing
+pnpm format:check
+```
+
+### Before Committing
+
+A Git pre-commit hook automatically runs `pnpm format && pnpm lint` before each commit.
+
+- If lint passes, the commit proceeds
+- If lint fails, the commit is blocked — fix errors before committing
+- To bypass the hook (not recommended): `git commit --no-verify`
+
+### Configuration Files
+
+- `.prettierrc` — Prettier settings (2-space indent, single quotes, trailing commas)
+- `eslint.config.js` — ESLint flat config with TypeScript and Svelte support
+- `.editorconfig` — Editor settings for consistent indentation
+
+---
+
 ## TypeScript
 
 - **Strict mode** on. No `any`. Use `unknown` and narrow.
@@ -43,6 +83,7 @@ Use **Svelte 5 runes** syntax. Do not use Svelte 4 reactive syntax.
 ```
 
 Use `$props()` for component props:
+
 ```svelte
 <script lang="ts">
   const { jobId, onComplete }: { jobId: string; onComplete: () => void } = $props();
@@ -67,7 +108,7 @@ export const actions = {
     if (!form.valid) return fail(400, { form });
     // ... handle login
     return message(form, 'Success');
-  }
+  },
 };
 ```
 
@@ -87,6 +128,7 @@ export const load: PageServerLoad = async ({ params, locals, platform }) => {
 ### Accessing CF bindings
 
 Always via `platform.env`:
+
 ```typescript
 // In +server.ts or +page.server.ts
 export async function GET({ platform, locals }) {
@@ -133,7 +175,15 @@ export const createJobSchema = z.object({
 export const regionRuleSchema = z.object({
   id: z.string(),
   label: z.enum(['chrome', 'content', 'heading', 'figure', 'caption', 'code', 'footnote']),
-  action: z.enum(['ignore', 'ocr', 'ocr-heading', 'crop-image', 'ocr-code', 'ocr-caption', 'ocr-footnote']),
+  action: z.enum([
+    'ignore',
+    'ocr',
+    'ocr-heading',
+    'crop-image',
+    'ocr-code',
+    'ocr-caption',
+    'ocr-footnote',
+  ]),
   match: z.object({
     yRange: z.tuple([z.number(), z.number()]).optional(),
     xRange: z.tuple([z.number(), z.number()]).optional(),
@@ -207,7 +257,9 @@ Use `crypto.randomUUID()` (available in all Workers/browsers) or a nanoid patter
 // Prefixed IDs for readability in logs/DB
 export function generateId(prefix: 'usr' | 'job' | 'tpl' | 'ses'): string {
   const bytes = crypto.getRandomValues(new Uint8Array(8));
-  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
   return `${prefix}_${hex}`;
 }
 // e.g. "job_a3f2c1b4d8e7f6a5"
@@ -342,4 +394,3 @@ pnpm test:watch        # Watch mode
 pnpm test:e2e          # Run all E2E tests
 pnpm test:e2e:ui       # Run with Playwright UI
 ```
-

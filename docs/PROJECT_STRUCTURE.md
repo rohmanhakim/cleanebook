@@ -168,6 +168,9 @@ cleanebook/
 │   └── workflows/
 │       └── ci.yml                  # GitHub Actions CI/CD pipeline
 │
+├── .husky/
+│   └── pre-commit                  # Git pre-commit hook (format + lint)
+│
 ├── wrangler.jsonc                  # CF config (see ARCHITECTURE.md)
 ├── svelte.config.js
 ├── tsconfig.json
@@ -175,6 +178,9 @@ cleanebook/
 ├── vitest.config.ts                # Vitest configuration
 ├── playwright.config.ts            # Playwright configuration
 ├── postcss.config.js               # PostCSS with Tailwind CSS v4
+├── eslint.config.js                # ESLint flat config (TypeScript + Svelte)
+├── .prettierrc                     # Prettier config (2-space indent)
+├── .editorconfig                   # Editor indentation settings
 └── package.json
 ```
 

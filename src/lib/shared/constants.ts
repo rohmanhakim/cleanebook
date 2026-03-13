@@ -1,38 +1,38 @@
 // Plan limits and application constants
 
 export const PLAN_LIMITS = {
-	anonymous: {
-		conversionsTotal: 1,
-		maxPagesPerPdf: 50,
-		canSaveTemplates: false,
-		canBatch: false,
-		serverSideRender: false,
-		canDownloadEpub: false,
-	},
-	free: {
-		conversionsPerMonth: 3,
-		maxPagesPerPdf: 100,
-		canSaveTemplates: false,
-		canBatch: false,
-		serverSideRender: false,
-		canDownloadEpub: true,
-	},
-	reader: {
-		conversionsPerMonth: 40,
-		maxPagesPerPdf: 500,
-		canSaveTemplates: true,
-		canBatch: false,
-		serverSideRender: true,
-		canDownloadEpub: true,
-	},
-	collector: {
-		conversionsPerMonth: Infinity,
-		maxPagesPerPdf: Infinity,
-		canSaveTemplates: true,
-		canBatch: true,
-		serverSideRender: true,
-		canDownloadEpub: true,
-	},
+  anonymous: {
+    conversionsTotal: 1,
+    maxPagesPerPdf: 50,
+    canSaveTemplates: false,
+    canBatch: false,
+    serverSideRender: false,
+    canDownloadEpub: false,
+  },
+  free: {
+    conversionsPerMonth: 3,
+    maxPagesPerPdf: 100,
+    canSaveTemplates: false,
+    canBatch: false,
+    serverSideRender: false,
+    canDownloadEpub: true,
+  },
+  reader: {
+    conversionsPerMonth: 40,
+    maxPagesPerPdf: 500,
+    canSaveTemplates: true,
+    canBatch: false,
+    serverSideRender: true,
+    canDownloadEpub: true,
+  },
+  collector: {
+    conversionsPerMonth: Infinity,
+    maxPagesPerPdf: Infinity,
+    canSaveTemplates: true,
+    canBatch: true,
+    serverSideRender: true,
+    canDownloadEpub: true,
+  },
 } as const;
 
 export const CLIENT_RENDER_THRESHOLD = 80; // pages; above this, use server-side render
