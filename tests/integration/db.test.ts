@@ -551,7 +551,7 @@ describe('Database Helpers', () => {
   // ── Job Status Transitions ──────────────────────────────────────────────────
 
   describe('Job Status Transitions', () => {
-    it('should support full lifecycle: queued → processing → complete', async () => {
+    it('should support full lifecycle: queued -> processing -> complete', async () => {
       const user = await createAnonymousUser(env.DB);
 
       const job: Omit<Job, 'createdAt' | 'updatedAt'> = {
@@ -591,7 +591,7 @@ describe('Database Helpers', () => {
       expect(result?.epubKey).toBe(`epubs/${user.id}/${job.id}.epub`);
     });
 
-    it('should support needs_review → resuming → complete', async () => {
+    it('should support needs_review -> resuming -> complete', async () => {
       const user = await createAnonymousUser(env.DB);
 
       const job: Omit<Job, 'createdAt' | 'updatedAt'> = {
