@@ -36,7 +36,7 @@
       </p>
     </div>
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {#each features as feature}
+      {#each features as feature (feature.title)}
         <FeatureCard title={feature.title} description={feature.description}>
           {#snippet icon()}
             {#if feature.icon === 'check-circle'}

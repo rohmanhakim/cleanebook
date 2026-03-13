@@ -31,7 +31,7 @@
       </p>
     </div>
     <div class="grid sm:grid-cols-3 gap-8">
-      {#each steps as step}
+      {#each steps as step (step.number)}
         <div class="text-center">
           <div
             class="size-16 rounded-full bg-brand-600 flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold"

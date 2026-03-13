@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
 import FeatureCard from '$lib/components/marketing/feature-card.svelte';
+import type { Snippet } from 'svelte';
 
 describe('FeatureCard', () => {
   it('should render with title and description', () => {
     const { getByText } = render(FeatureCard, {
       title: 'Test Feature',
       description: 'This is a test feature description',
-      icon: (() => {}) as any,
+      icon: (() => {}) as Snippet,
     });
 
     expect(getByText('Test Feature')).toBeTruthy();
@@ -18,7 +19,7 @@ describe('FeatureCard', () => {
     const { container } = render(FeatureCard, {
       title: 'Feature with Icon',
       description: 'Description here',
-      icon: (() => {}) as any,
+      icon: (() => {}) as Snippet,
     });
 
     // Check that the icon container exists with the correct styling

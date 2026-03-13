@@ -1,6 +1,7 @@
 // OCR Pipeline Workflow
 // Stub file - actual implementations will be added later
 
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference types="@cloudflare/workers-types" />
 
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
@@ -61,7 +62,8 @@ export class OcrPipeline extends WorkflowEntrypoint<Env, JobParams> {
 
 // Export default handler for the worker
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async fetch(_request: Request, _env: Env, _ctx: ExecutionContext): Promise<Response> {
     return new Response('OcrPipeline Worker - Not implemented', { status: 501 });
   },
 };

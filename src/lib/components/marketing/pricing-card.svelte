@@ -25,7 +25,7 @@
     </div>
   </Card.Header>
   <Card.Content class="space-y-3">
-    {#each features as feature}
+    {#each features as feature (feature)}
       <div class="flex items-center gap-2">
         <Check class="size-4 text-green-500" />
         <span class="text-sm">{feature}</span>

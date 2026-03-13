@@ -6,7 +6,7 @@
 
 import { nanoid } from 'nanoid';
 import type { D1Database } from '@cloudflare/workers-types';
-import type { Job, User, Session, Template } from '$lib/shared/types';
+import type { Job, User, Template } from '$lib/shared/types';
 
 // Always pass DB as first arg — never import platform directly in helpers
 

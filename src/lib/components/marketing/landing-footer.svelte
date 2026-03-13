@@ -12,14 +12,17 @@
         <span class="text-sm text-muted-foreground">© 2025 CleanEbook. All rights reserved.</span>
       </div>
       <nav class="flex items-center gap-6">
-        <a href="#" class="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >Privacy</a
+        <a
+          href="/privacy"
+          class="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</a
         >
-        <a href="#" class="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >Terms</a
+        <a
+          href="/terms"
+          class="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</a
         >
-        <a href="#" class="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >Contact</a
+        <a
+          href="/contact"
+          class="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</a
         >
       </nav>
     </div>

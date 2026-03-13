@@ -35,7 +35,7 @@
       </p>
     </div>
     <div class="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-      {#each plans as plan}
+      {#each plans as plan (plan.title)}
         <PricingCard
           title={plan.title}
           price={plan.price}
