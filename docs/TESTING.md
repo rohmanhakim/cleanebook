@@ -1,3 +1,14 @@
+<!--
+Document Version: 1.1.0
+Last Updated: 2026-03-13
+Source Commits:
+  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+Changes:
+  - Updated tests/ directory structure with new auth test files
+  - Added D1 migration setup for integration tests section
+  - Added readD1Migrations/applyD1Migrations configuration
+  - Updated types.d.ts with TEST_MIGRATIONS binding
+-->
 # CleanEbook — Testing Infrastructure
 
 ## Overview
@@ -20,15 +31,20 @@ CleanEbook uses a three-tier testing approach:
 
 ```
 tests/
-├── unit/                  # Vitest unit tests
-│   └── example.test.ts    # Sample tests
-├── integration/           # Vitest integration tests (Workers pool)
-│   ├── bindings.test.ts   # CF bindings tests
-│   └── types.d.ts         # TypeScript definitions for cloudflare:test
-├── e2e/                   # Playwright E2E tests
-│   └── landing.spec.ts    # Landing page tests
-└── helpers/               # Test utilities (future)
-    └── testData.ts        # Test fixtures
+├── unit/                       # Vitest unit tests
+│   ├── example.test.ts         # Sample tests
+│   ├── auth.test.ts            # Auth function tests (token gen, hashing, cookies)
+│   └── marketing/              # Marketing component tests
+│       ├── feature-card.test.ts
+│       └── pricing-card.test.ts
+├── integration/                # Vitest integration tests (Workers pool)
+│   ├── apply-migrations.ts     # D1 migration setup helper
+│   ├── auth.test.ts            # Auth integration tests (session CRUD)
+│   ├── bindings.test.ts        # CF bindings tests
+│   └── types.d.ts              # TypeScript definitions for cloudflare:test
+├── e2e/                        # Playwright E2E tests
+│   └── landing.spec.ts         # Landing page tests
+└── helpers/                    # Test utilities (future)
 ```
 
 ## Running Tests
@@ -100,22 +116,33 @@ Key configuration:
 
 #### Integration Tests (`vitest.integration.config.ts`)
 
-Cloudflare Workers pool for testing with real bindings:
+Cloudflare Workers pool for testing with real bindings. Includes D1 migration setup:
 
 ```typescript
 // vitest.integration.config.ts
-import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { defineWorkersConfig, readD1Migrations } from '@cloudflare/vitest-pool-workers/config';
+import { resolve } from 'path';
 
-export default defineWorkersConfig({
-	test: {
-		include: ['tests/integration/**/*.test.ts'],
-		globals: true,
-		poolOptions: {
-			workers: {
-				wrangler: { configPath: './wrangler.dev.jsonc' }
-			}
-		}
-	}
+export default defineWorkersConfig(async () => {
+  // Read D1 migrations for test database setup
+  const migrationsPath = resolve('./migrations');
+  const migrations = await readD1Migrations(migrationsPath);
+
+  return {
+    test: {
+      include: ['tests/integration/**/*.test.ts'],
+      globals: true,
+      poolOptions: {
+        workers: {
+          wrangler: { configPath: './wrangler.dev.jsonc' },
+          miniflare: {
+            bindings: { TEST_MIGRATIONS: migrations }
+          }
+        }
+      },
+      setupFiles: ['./tests/integration/apply-migrations.ts']
+    }
+  };
 });
 ```
 
@@ -123,6 +150,70 @@ This configuration:
 - Uses the Workers pool for integration tests
 - Loads bindings from `wrangler.dev.jsonc`
 - Provides access to D1, R2, KV, and secrets in integration tests
+- Reads D1 migrations and exposes them via `TEST_MIGRATIONS` binding
+- Runs `apply-migrations.ts` setup before tests
+
+#### D1 Migration Setup for Integration Tests
+
+Integration tests need a properly initialized database schema. The migrations are applied via a setup file:
+
+```typescript
+// tests/integration/apply-migrations.ts
+import { env } from 'cloudflare:test';
+
+export async function applyMigrations(): Promise<void> {
+  await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+}
+```
+
+Each integration test that needs the database should call `applyMigrations()`:
+
+```typescript
+// tests/integration/auth.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { env } from 'cloudflare:test';
+import { applyMigrations } from './apply-migrations';
+
+describe('Auth integration tests', () => {
+  beforeEach(async () => {
+    await applyMigrations();
+  });
+
+  it('should create and validate a session', async () => {
+    // Test with a fresh database
+  });
+});
+```
+
+#### Type Definitions for Test Bindings
+
+The `cloudflare:test` module types are extended in `tests/integration/types.d.ts`:
+
+```typescript
+// tests/integration/types.d.ts
+declare module 'cloudflare:test' {
+  import type { D1Database, R2Bucket, KVNamespace, Queue } from '@cloudflare/workers-types';
+
+  export const env: {
+    DB: D1Database;
+    R2: R2Bucket;
+    KV: KVNamespace;
+    QUEUE: Queue;
+    // Migration bindings from vitest.integration.config.ts
+    TEST_MIGRATIONS: readonly { sql: string; name: string }[];
+    // Secrets from .dev.vars
+    HF_API_KEY: string;
+    COOKIE_SECRET: string;
+    // ... other secrets
+  };
+
+  // Provided by @cloudflare/vitest-pool-workers
+  export function applyD1Migrations(
+    db: D1Database,
+    migrations: readonly { sql: string; name: string }[]
+  ): Promise<void>;
+}
+```
 
 ## Writing Tests
 

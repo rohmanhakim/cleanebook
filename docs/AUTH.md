@@ -1,3 +1,14 @@
+<!--
+Document Version: 1.1.0
+Last Updated: 2026-03-13
+Source Commits:
+  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+Changes:
+  - Updated validateSessionToken() with complete SQL query and column aliasing
+  - Updated hooks.server.ts with ANON_SESSION_ROUTES and error handling
+  - Updated User object to use rowToUser() helper with prefix
+  - Added anonymous user fields: isAnonymous, conversionsTotal, polarCustomerId
+-->
 # CleanEbook — Authentication
 
 ## Development Gating (Basic Auth)
@@ -87,6 +98,7 @@ import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase64url, encodeHexLowerCase } from '@oslojs/encoding';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { User, Session } from '$lib/shared/types';
+import { rowToUser } from './db';
 
 const SESSION_COOKIE_NAME = 'session';
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -128,11 +140,24 @@ export async function validateSessionToken(
 ): Promise<{ session: Session; user: User } | null> {
   const sessionId = sessionTokenToId(token);
 
+  // Important: Use explicit column aliasing for JOIN queries
+  // Each column from users table needs u_ prefix for rowToUser() mapper
   const row = await db
     .prepare(`
-      SELECT s.id, s.user_id, s.expires_at,
-             u.id as u_id, u.email, u.name, u.role, u.plan,
-             u.hf_api_key_encrypted, u.conversions_this_month, u.conversions_reset_at
+      SELECT 
+        s.id, s.user_id, s.expires_at,
+        u.id as u_id, 
+        u.email as u_email, 
+        u.name as u_name, 
+        u.role as u_role, 
+        u.plan as u_plan, 
+        u.is_anonymous as u_is_anonymous,
+        u.hf_api_key_encrypted as u_hf_api_key_encrypted, 
+        u.polar_customer_id as u_polar_customer_id,
+        u.conversions_this_month as u_conversions_this_month, 
+        u.conversions_total as u_conversions_total, 
+        u.conversions_reset_at as u_conversions_reset_at,
+        u.created_at as u_created_at
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.id = ?
@@ -164,17 +189,8 @@ export async function validateSessionToken(
     expiresAt,
   };
 
-  const user: User = {
-    id: row.u_id as string,
-    email: row.email as string,
-    name: row.name as string,
-    role: row.role as User['role'],
-    plan: row.plan as User['plan'],
-    hfApiKeyEncrypted: row.hf_api_key_encrypted as string | null,
-    conversionsThisMonth: row.conversions_this_month as number,
-    conversionsResetAt: row.conversions_reset_at as string,
-    createdAt: '',
-  };
+  // Use rowToUser helper with prefix for cleaner code
+  const user = rowToUser(row, 'u_');
 
   return { session, user };
 }
@@ -208,43 +224,102 @@ export function getSessionTokenFromCookies(cookieHeader: string | null): string 
 
 ```typescript
 import type { Handle } from '@sveltejs/kit';
-import { validateSessionToken, getSessionTokenFromCookies, generateSessionToken, createSession, setSessionCookie } from '$lib/server/auth';
+import {
+  validateSessionToken,
+  getSessionTokenFromCookies,
+  generateSessionToken,
+  createSession,
+  setSessionCookie,
+} from '$lib/server/auth';
 import { createAnonymousUser } from '$lib/server/db';
 
-// Routes where we should NOT auto-create an anonymous session
+// Routes where we should auto-create an anonymous session
 // (avoids creating throwaway anon users for every bot/crawler hit)
 const ANON_SESSION_ROUTES = ['/editor', '/api/upload', '/api/job'];
 
 export const handle: Handle = async ({ event, resolve }) => {
+  // Basic Auth gating - only active if BASIC_AUTH_USER is configured
+  // Check both CF bindings (production) and process.env (dev/CI)
+  const platform = event.platform;
+  const basicAuthUser = platform?.env?.BASIC_AUTH_USER ?? process.env.BASIC_AUTH_USER;
+  const basicAuthPassword = platform?.env?.BASIC_AUTH_PASSWORD ?? process.env.BASIC_AUTH_PASSWORD;
+
+  if (basicAuthUser && basicAuthPassword) {
+    const authHeader = event.request.headers.get('Authorization');
+
+    if (!authHeader || !isValidBasicAuth(authHeader, basicAuthUser, basicAuthPassword)) {
+      return new Response(null, {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': 'Basic realm="CleanEbook Development", charset="UTF-8"',
+        },
+      });
+    }
+  }
+
+  // Session validation - check for existing session cookie
   const token = getSessionTokenFromCookies(event.request.headers.get('cookie'));
 
-  if (token) {
-    const result = await validateSessionToken(event.platform!.env.DB, token);
+  if (token && platform?.env?.DB) {
+    const result = await validateSessionToken(platform.env.DB, token);
     event.locals.user = result?.user ?? null;
   } else {
     event.locals.user = null;
   }
 
+  // Resolve the response first
   const response = await resolve(event);
 
-  // Auto-create anonymous session only when a real interaction begins
-  // (upload or editor access), not on every page load
-  if (!event.locals.user) {
+  // Lazy anonymous user creation - only on routes that represent real interactions
+  // This prevents flooding D1 with bot traffic from marketing page hits
+  if (!event.locals.user && platform?.env?.DB) {
     const path = event.url.pathname;
-    const shouldCreateAnon = ANON_SESSION_ROUTES.some(r => path.startsWith(r));
+    const shouldCreateAnon = ANON_SESSION_ROUTES.some((r) => path.startsWith(r));
 
     if (shouldCreateAnon) {
-      const anonUser = await createAnonymousUser(event.platform!.env.DB);
-      const sessionToken = generateSessionToken();
-      await createSession(event.platform!.env.DB, anonUser.id, sessionToken);
-      event.locals.user = anonUser;
-      // Set cookie on the response
-      response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
+      try {
+        // Create anonymous user and session
+        const anonUser = await createAnonymousUser(platform.env.DB);
+        const sessionToken = generateSessionToken();
+        await createSession(platform.env.DB, anonUser.id, sessionToken);
+
+        // Set user in locals for this request
+        event.locals.user = anonUser;
+
+        // Set cookie on the response
+        response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
+      } catch (error) {
+        // Log but don't fail the request - user will remain null
+        console.error('Failed to create anonymous user:', error);
+      }
     }
   }
 
   return response;
 };
+
+/**
+ * Validates Basic Auth credentials from the Authorization header
+ */
+function isValidBasicAuth(
+  authHeader: string,
+  expectedUser: string,
+  expectedPassword: string
+): boolean {
+  if (!authHeader.startsWith('Basic ')) {
+    return false;
+  }
+
+  try {
+    const base64Credentials = authHeader.slice(6);
+    const credentials = atob(base64Credentials);
+    const [username, password] = credentials.split(':');
+
+    return username === expectedUser && password === expectedPassword;
+  } catch {
+    return false;
+  }
+}
 ```
 
 **Why lazy anonymous creation matters:** Creating an anonymous user on every `/` page load would flood D1 with bot traffic and make the cleanup cron expensive. By deferring creation until a real upload or editor interaction, each anonymous user record represents genuine engagement.

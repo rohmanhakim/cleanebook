@@ -1,3 +1,15 @@
+<!--
+Document Version: 1.1.0
+Last Updated: 2026-03-13
+Source Commits:
+  - 00b4f075cc66b0f6506d5e96628d442c53c74a6b (Task 1B - Anonymous User Types)
+  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+Changes:
+  - Updated App.Locals.user type with anonymous user fields
+  - Added 'anonymous' to plan union type
+  - Added BASIC_AUTH_USER/BASIC_AUTH_PASSWORD to Platform.env
+  - Renamed hfApiKey to hfApiKeyEncrypted
+-->
 # CleanEbook — Dependency Stack
 
 All versions are verified against npmjs.com as of March 2025.
@@ -173,6 +185,9 @@ declare global {
         COOKIE_SECRET: string;
         POLAR_ACCESS_TOKEN: string;
         POLAR_WEBHOOK_SECRET: string;
+        // Basic Auth (development gating - remove in production when ready)
+        BASIC_AUTH_USER: string;
+        BASIC_AUTH_PASSWORD: string;
       };
       context: ExecutionContext;
       caches: CacheStorage & { default: Cache };
@@ -183,8 +198,14 @@ declare global {
         email: string;
         name: string;
         role: 'user' | 'admin';
-        plan: 'free' | 'reader' | 'collector';
-        hfApiKey: string | null;
+        plan: 'anonymous' | 'free' | 'reader' | 'collector';
+        isAnonymous: boolean;
+        hfApiKeyEncrypted: string | null;
+        polarCustomerId: string | null;
+        conversionsThisMonth: number;
+        conversionsTotal: number;
+        conversionsResetAt: string;
+        createdAt: string;
       } | null;
     }
   }

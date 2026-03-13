@@ -1,3 +1,14 @@
+<!--
+Document Version: 1.1.0
+Last Updated: 2026-03-13
+Source Commits:
+  - 00b4f075cc66b0f6506d5e96628d442c53c74a6b (Task 1B - Anonymous User Types)
+  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+Changes:
+  - Fixed User.email type: string (not string | null) - empty string for anonymous
+  - Updated rowToUser() with prefix parameter for JOIN queries
+  - Added SQLite boolean conversion details
+-->
 # CleanEbook — Database Schema (Cloudflare D1 / SQLite)
 
 ## Migration Files
@@ -200,7 +211,7 @@ export interface Job {
 
 export interface User {
   id: string;
-  email: string | null;              // null for anonymous users
+  email: string;                     // empty string for anonymous users
   name: string;
   role: UserRole;
   plan: UserPlan;
@@ -364,20 +375,37 @@ export async function incrementConversionsTotal(db: D1Database, userId: string):
     .run();
 }
 
-function rowToUser(row: Record<string, unknown>): User {
+/**
+ * Map a database row to a User object
+ * Handles snake_case → camelCase conversion
+ *
+ * @param row - The database row
+ * @param prefix - Column prefix for JOIN queries (e.g., 'u_' for u.id, u.email)
+ */
+export function rowToUser(row: Record<string, unknown>, prefix = ''): User {
+  const get = (field: string) => row[prefix ? `${prefix}${field}` : field];
+
+  // Handle boolean conversion - D1/SQLite may return 1, "1", true, or 0, "0", false
+  const toBoolean = (value: unknown): boolean => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    if (typeof value === 'string') return value === '1';
+    return Boolean(value);
+  };
+
   return {
-    id: row.id as string,
-    email: row.email as string | null,
-    name: row.name as string,
-    role: row.role as UserRole,
-    plan: row.plan as UserPlan,
-    isAnonymous: row.is_anonymous === 1,
-    conversionsTotal: row.conversions_total as number,
-    hfApiKeyEncrypted: row.hf_api_key_encrypted as string | null,
-    conversionsThisMonth: row.conversions_this_month as number,
-    conversionsResetAt: row.conversions_reset_at as string,
-    polarCustomerId: row.polar_customer_id as string | null,
-    createdAt: row.created_at as string,
+    id: get('id') as string,
+    email: get('email') as string,           // empty string for anonymous users
+    name: get('name') as string,
+    role: get('role') as User['role'],
+    plan: get('plan') as User['plan'],
+    isAnonymous: toBoolean(get('is_anonymous')),
+    conversionsTotal: get('conversions_total') as number,
+    hfApiKeyEncrypted: get('hf_api_key_encrypted') as string | null,
+    conversionsThisMonth: get('conversions_this_month') as number,
+    conversionsResetAt: get('conversions_reset_at') as string,
+    polarCustomerId: get('polar_customer_id') as string | null,
+    createdAt: get('created_at') as string,
   };
 }
 ```

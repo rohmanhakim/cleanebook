@@ -1,3 +1,17 @@
+<!--
+Document Version: 1.1.0
+Last Updated: 2026-03-13
+Source Commits:
+  - 00b4f075cc66b0f6506d5e96628d442c53c74a6b (Task 1B - Anonymous User Types)
+  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+Changes:
+  - Updated tests/ directory structure with new auth test files
+  - Added tests/integration/apply-migrations.ts
+  - Added tests/integration/auth.test.ts
+  - Added tests/unit/auth.test.ts
+  - Added tests/unit/marketing/ component tests
+  - Noted vitest.integration.config.ts D1 migration setup
+-->
 # CleanEbook — Project Structure
 
 ## Root Layout
@@ -148,7 +162,8 @@ cleanebook/
 │
 ├── migrations/
 │   ├── 0001_initial.sql            # D1 initial schema
-│   └── 0002_templates.sql          # Templates table
+│   ├── 0002_templates.sql          # Templates table
+│   └── 0003_anonymous.sql          # Anonymous user indexes
 │
 ├── static/
 │   ├── favicon.ico
@@ -156,13 +171,19 @@ cleanebook/
 │
 ├── tests/
 │   ├── unit/                       # Vitest unit tests
-│   │   └── example.test.ts
-│   ├── integration/                # Integration tests (future)
+│   │   ├── example.test.ts
+│   │   ├── auth.test.ts            # Auth function tests (token gen, hashing)
+│   │   └── marketing/              # Marketing component tests
+│   │       ├── feature-card.test.ts
+│   │       └── pricing-card.test.ts
+│   ├── integration/                # Vitest integration tests (Workers pool)
+│   │   ├── apply-migrations.ts     # D1 migration setup helper
+│   │   ├── auth.test.ts            # Auth integration tests (session CRUD)
+│   │   ├── bindings.test.ts        # CF bindings tests
+│   │   └── types.d.ts              # TypeScript definitions for cloudflare:test
 │   ├── e2e/                        # Playwright E2E tests
 │   │   └── landing.spec.ts
 │   └── helpers/                    # Test utilities (future)
-│       ├── mockPlatform.ts
-│       └── testData.ts
 │
 ├── .github/
 │   └── workflows/

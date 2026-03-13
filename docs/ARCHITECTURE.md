@@ -1,3 +1,12 @@
+<!--
+Document Version: 1.1.0
+Last Updated: 2026-03-13
+Source Commits:
+  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+Changes:
+  - Clarified anonymous user creation happens in hooks.server.ts
+  - Added all routes that trigger anonymous creation (/api/upload, /api/job, /editor)
+-->
 # CleanEbook — Architecture
 
 ## Hosting & Runtime
@@ -6,15 +15,15 @@ Everything runs on Cloudflare. There is no separate VM, no Node.js server, no Do
 container for the MVP. External services are HuggingFace Inference API and Polar (billing).
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Cloudflare Network                           │
-│                                                                     │
+┌────────────────────────────────────────────────────────────────────┐
+│                        Cloudflare Network                          │
+│                                                                    │
 │  ┌──────────────┐    ┌──────────────────────────────────────────┐  │
 │  │  CF Pages    │    │           CF Workers                     │  │
 │  │  (static)    │    │  SvelteKit SSR + API routes (+server.js) │  │
 │  │  marketing   │    │  /api/upload, /api/job/*, /api/webhook   │  │
 │  │  pages       │    └──────────────────────────────────────────┘  │
-│  └──────────────┘                    │                              │
+│  └──────────────┘                    │                             │
 │                              ┌───────┴────────┐                    │
 │                              ▼                ▼                    │
 │                         CF Queues        CF D1 (SQLite)            │
@@ -23,10 +32,10 @@ container for the MVP. External services are HuggingFace Inference API and Polar
 │                       CF Workflows                                 │
 │                    (durable OCR pipeline)                          │
 │                              │                                     │
-│                    ┌─────────┴──────────┐                         │
+│                    ┌─────────┴──────────┐                          │
 │                    ▼                    ▼                          │
 │                CF R2 (files)        CF KV (sessions)               │
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
               │                              │
               ▼ (external)                   ▼ (external)
    HuggingFace Inference API            Polar (billing MoR)
@@ -111,10 +120,15 @@ Browser (no session cookie)
   → drags PDF onto dropzone
 
 POST /api/upload (no session cookie)
-  → Worker: no locals.user → create anonymous user in D1
-  → generateId('anon') → INSERT INTO users (is_anonymous=1, plan='anonymous')
+  → hooks.server.ts: no locals.user → create anonymous user in D1
+  → createAnonymousUser() → INSERT INTO users (id='anon_*', is_anonymous=1, plan='anonymous')
   → create session for anonymous user → set cookie
   → stream PDF to R2: uploads/anon_{id}/{uuid}.pdf
+  
+Note: Anonymous user creation happens lazily in hooks.server.ts, triggered on these routes:
+  - /api/upload - when user uploads a PDF
+  - /api/job - when user creates a job
+  - /editor - when user accesses the editor directly
   → enforce ANONYMOUS_MAX_PAGES (50) limit
   → return { key, filename, pageCount }
 
