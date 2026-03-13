@@ -1,10 +1,23 @@
-import type { Handle } from '@sveltejs/kit';
-
 /**
  * SvelteKit server hook that handles:
  * 1. Conditional Basic Auth gating (development phase protection)
- * 2. Session validation (future - will be added when user auth is implemented)
+ * 2. Session validation for all requests
+ * 3. Lazy anonymous user creation on specific routes
  */
+import type { Handle } from '@sveltejs/kit';
+import {
+	validateSessionToken,
+	getSessionTokenFromCookies,
+	generateSessionToken,
+	createSession,
+	setSessionCookie
+} from '$lib/server/auth';
+import { createAnonymousUser } from '$lib/server/db';
+
+// Routes where we should auto-create an anonymous session
+// (avoids creating throwaway anon users for every bot/crawler hit)
+const ANON_SESSION_ROUTES = ['/editor', '/api/upload', '/api/job'];
+
 export const handle: Handle = async ({ event, resolve }) => {
 	// Basic Auth gating - only active if BASIC_AUTH_USER is configured
 	// Remove BASIC_AUTH_USER and BASIC_AUTH_PASSWORD secrets to disable
@@ -12,10 +25,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const platform = event.platform;
 	const basicAuthUser = platform?.env?.BASIC_AUTH_USER ?? process.env.BASIC_AUTH_USER;
 	const basicAuthPassword = platform?.env?.BASIC_AUTH_PASSWORD ?? process.env.BASIC_AUTH_PASSWORD;
-	
+
 	if (basicAuthUser && basicAuthPassword) {
 		const authHeader = event.request.headers.get('Authorization');
-		
+
 		if (!authHeader || !isValidBasicAuth(authHeader, basicAuthUser, basicAuthPassword)) {
 			// Return 401 with WWW-Authenticate header to trigger browser login
 			return new Response(null, {
@@ -27,17 +40,45 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// Initialize locals.user as null (will be set by session validation later)
-	event.locals.user = null;
+	// Session validation - check for existing session cookie
+	const token = getSessionTokenFromCookies(event.request.headers.get('cookie'));
 
-	// TODO: Add session validation here when user auth is implemented
-	// const token = getSessionTokenFromCookies(event.request.headers.get('cookie'));
-	// if (token) {
-	//   const result = await validateSessionToken(platform.env.DB, token);
-	//   if (result) event.locals.user = result.user;
-	// }
+	if (token && platform?.env?.DB) {
+		const result = await validateSessionToken(platform.env.DB, token);
+		event.locals.user = result?.user ?? null;
+	} else {
+		event.locals.user = null;
+	}
 
-	return resolve(event);
+	// Resolve the response first
+	const response = await resolve(event);
+
+	// Lazy anonymous user creation - only on routes that represent real interactions
+	// This prevents flooding D1 with bot traffic from marketing page hits
+	if (!event.locals.user && platform?.env?.DB) {
+		const path = event.url.pathname;
+		const shouldCreateAnon = ANON_SESSION_ROUTES.some((r) => path.startsWith(r));
+
+		if (shouldCreateAnon) {
+			try {
+				// Create anonymous user and session
+				const anonUser = await createAnonymousUser(platform.env.DB);
+				const sessionToken = generateSessionToken();
+				await createSession(platform.env.DB, anonUser.id, sessionToken);
+
+				// Set user in locals for this request
+				event.locals.user = anonUser;
+
+				// Set cookie on the response
+				response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
+			} catch (error) {
+				// Log but don't fail the request - user will remain null
+				console.error('Failed to create anonymous user:', error);
+			}
+		}
+	}
+
+	return response;
 };
 
 /**
@@ -57,10 +98,7 @@ function isValidBasicAuth(
 		const credentials = atob(base64Credentials);
 		const [username, password] = credentials.split(':');
 
-		return (
-			username === expectedUser &&
-			password === expectedPassword
-		);
+		return username === expectedUser && password === expectedPassword;
 	} catch {
 		return false;
 	}

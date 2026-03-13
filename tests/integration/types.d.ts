@@ -4,6 +4,12 @@
 declare module 'cloudflare:test' {
 	import type { D1Database, R2Bucket, KVNamespace, Queue } from '@cloudflare/workers-types';
 
+	interface D1Migration {
+		id: number;
+		name: string;
+		queries: string[];
+	}
+
 	export const env: {
 		DB: D1Database;
 		R2: R2Bucket;
@@ -16,5 +22,13 @@ declare module 'cloudflare:test' {
 		POLAR_WEBHOOK_SECRET: string;
 		BASIC_AUTH_USER: string;
 		BASIC_AUTH_PASSWORD: string;
+		// Test-only bindings
+		TEST_MIGRATIONS: D1Migration[];
 	};
+
+	export function applyD1Migrations(
+		db: D1Database,
+		migrations: D1Migration[],
+		migrationsTableName?: string
+	): Promise<void>;
 }

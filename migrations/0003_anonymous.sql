@@ -1,11 +1,6 @@
 -- Migration 0003: Anonymous User Support
--- Adds columns and indexes needed for anonymous trial users
-
--- Add is_anonymous column (0 = registered user, 1 = anonymous trial user)
-ALTER TABLE users ADD COLUMN is_anonymous INTEGER NOT NULL DEFAULT 0;
-
--- Add conversions_total column (lifetime conversions, used for anonymous limit check)
-ALTER TABLE users ADD COLUMN conversions_total INTEGER NOT NULL DEFAULT 0;
+-- Adds indexes needed for anonymous trial users
+-- Note: is_anonymous and conversions_total columns are already in 0001_initial.sql
 
 -- Index for filtering anonymous users
 CREATE INDEX IF NOT EXISTS idx_users_is_anonymous ON users(is_anonymous);

@@ -28,9 +28,14 @@ declare global {
 				email: string;
 				name: string;
 				role: 'user' | 'admin';
-				plan: 'free' | 'reader' | 'collector';
-				hfApiKey: string | null;
+				plan: 'anonymous' | 'free' | 'reader' | 'collector';
+				isAnonymous: boolean;
+				hfApiKeyEncrypted: string | null;
 				polarCustomerId: string | null;
+				conversionsThisMonth: number;
+				conversionsTotal: number;
+				conversionsResetAt: string;
+				createdAt: string;
 			} | null;
 		}
 	}
