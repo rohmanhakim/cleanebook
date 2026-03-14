@@ -204,6 +204,25 @@ The project uses two configuration files:
 
 The playbook scripts copy the appropriate config to `wrangler.jsonc` (which is gitignored).
 
+### Emergency Database Reset
+
+⚠️ **Warning**: This deletes ALL data! Only use during early development.
+
+If you need to recreate the D1 database from scratch (e.g., schema changes that require a fresh database):
+
+```bash
+chmod +x scripts/reset-d1-database.sh
+./scripts/reset-d1-database.sh
+```
+
+This script will:
+1. Delete the existing D1 database
+2. Create a new D1 database
+3. Prompt you to update both `wrangler.prod.jsonc` AND `wrangler.jsonc` with the new database ID
+4. Run all migrations on the new database
+
+**Note**: After running this script, you must redeploy: `./scripts/deploy-preview.sh`
+
 ### Manual Commands
 
 If you need to run steps individually:
