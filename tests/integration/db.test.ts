@@ -353,10 +353,20 @@ describe('Database Helpers', () => {
       // Use explicit timestamps to avoid flaky test due to SQLite's 1-second resolution
       // Job 1: Insert with explicit older timestamp (1 second in the past)
       const job1Id = `job_older_${nanoid()}`;
-      await env.DB.prepare(`
+      await env.DB.prepare(
+        `
         INSERT INTO jobs (id, user_id, status, pdf_key, pdf_page_count, pdf_filename, created_at, updated_at, ocr_model, layout_model)
         VALUES (?, ?, 'queued', ?, 10, 'older.pdf', datetime('now', '-1 second'), datetime('now', '-1 second'), ?, ?)
-      `).bind(job1Id, user.id, `uploads/${user.id}/older.pdf`, 'lightonai/LightOnOCR-2-1B', 'microsoft/layoutlmv3-base').run();
+      `
+      )
+        .bind(
+          job1Id,
+          user.id,
+          `uploads/${user.id}/older.pdf`,
+          'lightonai/LightOnOCR-2-1B',
+          'microsoft/layoutlmv3-base'
+        )
+        .run();
 
       // Job 2: Insert with current timestamp using createJob helper
       const job2Id = `job_newer_${nanoid()}`;
