@@ -1,13 +1,15 @@
 <!--
-Document Version: 1.1.0
-Last Updated: 2026-03-13
+Document Version: 1.2.0
+Last Updated: 2026-03-14
 Source Commits:
   - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+  - e5594e6 (Phase 001 - Fix 401 on first upload)
 Changes:
   - Updated validateSessionToken() with complete SQL query and column aliasing
   - Updated hooks.server.ts with ANON_SESSION_ROUTES and error handling
   - Updated User object to use rowToUser() helper with prefix
   - Added anonymous user fields: isAnonymous, conversionsTotal, polarCustomerId
+  - CRITICAL FIX: Anonymous user creation now happens BEFORE resolve(), not after
 -->
 # CleanEbook — Authentication
 
@@ -222,6 +224,10 @@ export function getSessionTokenFromCookies(cookieHeader: string | null): string 
 
 ## src/hooks.server.ts
 
+**CRITICAL:** Anonymous user creation must happen BEFORE `resolve(event)`, not after. The `resolve()` function is the boundary between pre-processing and post-processing. Any state that request handlers depend on (like `locals.user`) must be set **before** calling `resolve()`.
+
+This was discovered in Phase 001 when the first upload from a fresh browser returned 401 because the anonymous user was created after the route handler had already checked `locals.user` and rejected the request.
+
 ```typescript
 import type { Handle } from '@sveltejs/kit';
 import {
@@ -267,11 +273,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = null;
   }
 
-  // Resolve the response first
-  const response = await resolve(event);
+  // Track if we need to set a session cookie on the response
+  let newSessionToken: string | null = null;
 
-  // Lazy anonymous user creation - only on routes that represent real interactions
-  // This prevents flooding D1 with bot traffic from marketing page hits
+  // Lazy anonymous user creation - BEFORE resolve
+  // This ensures locals.user is populated when route handlers run
+  // Only create on routes that represent real interactions (avoids flooding D1 with bot traffic)
   if (!event.locals.user && platform?.env?.DB) {
     const path = event.url.pathname;
     const shouldCreateAnon = ANON_SESSION_ROUTES.some((r) => path.startsWith(r));
@@ -280,19 +287,24 @@ export const handle: Handle = async ({ event, resolve }) => {
       try {
         // Create anonymous user and session
         const anonUser = await createAnonymousUser(platform.env.DB);
-        const sessionToken = generateSessionToken();
-        await createSession(platform.env.DB, anonUser.id, sessionToken);
+        newSessionToken = generateSessionToken();
+        await createSession(platform.env.DB, anonUser.id, newSessionToken);
 
-        // Set user in locals for this request
+        // Set user in locals for this request - BEFORE resolve
         event.locals.user = anonUser;
-
-        // Set cookie on the response
-        response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
       } catch (error) {
         // Log but don't fail the request - user will remain null
         console.error('Failed to create anonymous user:', error);
       }
     }
+  }
+
+  // Now resolve the response with locals.user properly populated
+  const response = await resolve(event);
+
+  // Set cookie on the response if we created a new session
+  if (newSessionToken) {
+    response.headers.append('Set-Cookie', setSessionCookie(newSessionToken));
   }
 
   return response;
@@ -323,6 +335,8 @@ function isValidBasicAuth(
 ```
 
 **Why lazy anonymous creation matters:** Creating an anonymous user on every `/` page load would flood D1 with bot traffic and make the cleanup cron expensive. By deferring creation until a real upload or editor interaction, each anonymous user record represents genuine engagement.
+
+**Lesson learned (Phase 001):** The "after resolve" pattern only works for modifying the response, not for setting up request state. Lazy initialization in hooks must happen before resolve, not after.
 
 ---
 

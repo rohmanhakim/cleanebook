@@ -1,11 +1,13 @@
 <!--
-Document Version: 1.1.0
-Last Updated: 2026-03-13
+Document Version: 1.2.0
+Last Updated: 2026-03-14
 Source Commits:
   - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+  - e5594e6 (Phase 001 - Fix 401 on first upload)
 Changes:
   - Clarified anonymous user creation happens in hooks.server.ts
   - Added all routes that trigger anonymous creation (/api/upload, /api/job, /editor)
+  - CRITICAL: Anonymous user creation happens BEFORE resolve(), not after
 -->
 # CleanEbook — Architecture
 
@@ -124,11 +126,15 @@ POST /api/upload (no session cookie)
   → createAnonymousUser() → INSERT INTO users (id='anon_*', is_anonymous=1, plan='anonymous')
   → create session for anonymous user → set cookie
   → stream PDF to R2: uploads/anon_{id}/{uuid}.pdf
-  
+
 Note: Anonymous user creation happens lazily in hooks.server.ts, triggered on these routes:
   - /api/upload - when user uploads a PDF
   - /api/job - when user creates a job
   - /editor - when user accesses the editor directly
+
+CRITICAL: The anonymous user is created BEFORE resolve(event) is called.
+This ensures locals.user is populated when the route handler runs.
+The session cookie is set on the response AFTER resolve() returns.
   → enforce ANONYMOUS_MAX_PAGES (50) limit
   → return { key, filename, pageCount }
 

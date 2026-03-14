@@ -1,14 +1,17 @@
 <!--
-Document Version: 1.3.0
-Last Updated: 2026-03-13
+Document Version: 1.4.0
+Last Updated: 2026-03-14
 Source Commits:
   - 362da1d5753cfcff338f6e8bd15e5c54394cb584 (Task 1D - Database Helpers)
   - Task 1E - Upload API (three-layer testing architecture)
+  - Phase 001 completion (Anonymous User Upload Flow)
 Changes:
   - Added three-layer testing architecture (Unit → Handler → E2E)
   - Added handler tests section
   - Updated integration tests to focus on bindings only
   - Added note about avoiding SELF.fetch()
+  - Added handler test files to directory structure
+  - Added test fixtures documentation
 -->
 # CleanEbook — Testing Infrastructure
 
@@ -59,21 +62,93 @@ A healthy project usually looks like:
 
 ```
 tests/
-├── unit/                       # Vitest unit tests
+├── unit/                       # Vitest unit tests (jsdom)
+│   ├── setup.ts                # Test setup and mocks
 │   ├── example.test.ts         # Sample tests
 │   ├── auth.test.ts            # Auth function tests (token gen, hashing, cookies)
+│   ├── __mocks__/              # Mock modules for $app/* imports
+│   │   └── $app/navigation.ts  # Mock for SvelteKit navigation
 │   └── marketing/              # Marketing component tests
 │       ├── feature-card.test.ts
-│       └── pricing-card.test.ts
-├── integration/                # Vitest integration tests (Workers pool)
+│       ├── pricing-card.test.ts
+│       └── upload-dropzone.test.ts
+├── handler/                    # Handler tests (Workers pool, direct function calls)
+│   └── api/
+│       ├── upload.test.ts      # Upload endpoint tests
+│       ├── job-create.test.ts  # Job creation tests
+│       ├── job-status.test.ts  # Job status endpoint tests
+│       └── editor-page.test.ts # Editor page load tests
+├── integration/                # Integration tests (Workers pool, CF bindings)
 │   ├── apply-migrations.ts     # D1 migration setup helper
 │   ├── auth.test.ts            # Auth integration tests (session CRUD)
 │   ├── bindings.test.ts        # CF bindings tests
 │   ├── db.test.ts              # Database helper tests (Job, User CRUD)
+│   ├── hooks.test.ts           # hooks.server.ts integration tests
+│   ├── upload.test.ts          # Upload flow integration tests
 │   └── types.d.ts              # TypeScript definitions for cloudflare:test
 ├── e2e/                        # Playwright E2E tests
-│   └── landing.spec.ts         # Landing page tests
-└── helpers/                    # Test utilities (future)
+│   └── landing.spec.ts         # Landing page upload flow tests
+├── fixtures/                   # Test fixture files
+│   ├── pdfs/
+│   │   ├── sample-1page.pdf    # Valid 1-page PDF
+│   │   ├── sample-10pages.pdf  # Valid 10-page PDF
+│   │   └── sample-51pages.pdf  # PDF exceeding anonymous limit
+│   └── invalid/
+│       └── not-a-pdf.txt       # Non-PDF file for validation tests
+└── helpers/                    # Test utilities
+    └── request-event.ts        # Mock RequestEvent for handler tests
+```
+
+### Handler Tests
+
+Handler tests are the middle layer between unit and E2E tests. They test SvelteKit route handlers (`+server.ts`, `+page.server.ts`) directly with real Cloudflare bindings, but without the overhead of `SELF.fetch()`.
+
+**Why handler tests instead of SELF.fetch()?**
+
+Using `SELF.fetch()` in integration tests combines too many moving parts:
+- Worker runtime initialization
+- SvelteKit adapter internals
+- CSRF token handling
+- Hooks middleware chain
+
+This causes hard-to-debug hangs and flaky tests. Handler tests call the exported `GET`, `POST`, etc. functions directly:
+
+```typescript
+// tests/handler/api/upload.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { env } from 'cloudflare:test';
+import { applyMigrations } from '../integration/apply-migrations';
+import { POST } from '$routes/api/upload/+server';
+import { createMockRequestEvent } from '../helpers/request-event';
+
+describe('POST /api/upload', () => {
+  beforeEach(async () => {
+    await applyMigrations();
+  });
+
+  it('should reject non-PDF files', async () => {
+    const event = createMockRequestEvent({
+      method: 'POST',
+      body: // ... form data with non-PDF
+    });
+
+    const response = await POST(event);
+    expect(response.status).toBe(400);
+  });
+});
+```
+
+**Test fixtures** are loaded in `vitest.handler.config.ts` and accessible via `env.FIXTURE_*`:
+
+```typescript
+// In vitest.handler.config.ts
+miniflare: {
+  bindings: {
+    FIXTURE_PDF_1PAGE: bufferToArray(pdf1page),
+    FIXTURE_PDF_10PAGES: bufferToArray(pdf10pages),
+    // ...
+  }
+}
 ```
 
 ## Running Tests

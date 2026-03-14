@@ -1,10 +1,14 @@
 <!--
-Document Version: 1.2.0
-Last Updated: 2026-03-13
+Document Version: 1.3.0
+Last Updated: 2026-03-14
 Source Commits:
   - 362da1d5753cfcff338f6e8bd15e5c54394cb584 (Task 1D - Database Helpers)
+  - Phase 001 completion (Anonymous User Upload Flow)
 Changes:
-  - Added tests/integration/db.test.ts
+  - Added tests/handler/ directory for handler tests
+  - Added tests/fixtures/ for test PDF files
+  - Updated src/lib/server/ to reflect actual files
+  - Added vitest.handler.config.ts
 -->
 # CleanEbook — Project Structure
 
@@ -20,14 +24,17 @@ cleanebook/
 │   ├── lib/
 │   │   ├── server/                 # Server-only code (never in browser bundle)
 │   │   │   ├── auth.ts             # Session create/validate/destroy
-│   │   │   ├── db.ts               # D1 query helpers
-│   │   │   ├── r2.ts               # R2 upload/download helpers
-│   │   │   ├── queue.ts            # Queue message helpers
-│   │   │   ├── hf.ts               # HuggingFace Inference API client
-│   │   │   ├── polar.ts            # Polar billing client + helpers
-│   │   │   └── epub/
-│   │   │       ├── assembler.ts    # EPUB3 assembly from OCR results
-│   │   │       └── zipper.ts       # fflate-based EPUB zip builder
+│   │   │   ├── db.ts               # D1 query helpers, row mappers, user/job CRUD
+│   │   │   ├── upload.ts           # File upload handling with pdfjs-serverless
+│   │   │   ├── job.ts              # Job creation and queue management
+│   │   │   ├── job-status.ts       # Job status queries and updates
+│   │   │   # Future files (not yet implemented):
+│   │   │   # r2.ts                 # R2 upload/download helpers
+│   │   │   # queue.ts              # Queue message helpers
+│   │   │   # hf.ts                 # HuggingFace Inference API client
+│   │   │   # polar.ts              # Polar billing client + helpers
+│   │   │   # epub/assembler.ts     # EPUB3 assembly from OCR results
+│   │   │   # epub/zipper.ts        # fflate-based EPUB zip builder
 │   │   │
 │   │   ├── shared/                 # Safe to import anywhere (no CF bindings)
 │   │   │   ├── schemas.ts          # All Zod schemas (job, region, template, user)
@@ -165,20 +172,40 @@ cleanebook/
 │
 ├── tests/
 │   ├── unit/                       # Vitest unit tests
+│   │   ├── setup.ts                # Test setup and mocks
 │   │   ├── example.test.ts
 │   │   ├── auth.test.ts            # Auth function tests (token gen, hashing)
+│   │   ├── __mocks__/              # Mock modules
+│   │   │   └── $app/navigation.ts  # Mock for $app/navigation
 │   │   └── marketing/              # Marketing component tests
 │   │       ├── feature-card.test.ts
-│   │       └── pricing-card.test.ts
+│   │       ├── pricing-card.test.ts
+│   │       └── upload-dropzone.test.ts
+│   ├── handler/                    # Handler tests (SvelteKit routes with CF bindings)
+│   │   └── api/
+│   │       ├── upload.test.ts      # Upload endpoint tests
+│   │       ├── job-create.test.ts  # Job creation tests
+│   │       ├── job-status.test.ts  # Job status endpoint tests
+│   │       └── editor-page.test.ts # Editor page load tests
 │   ├── integration/                # Vitest integration tests (Workers pool)
 │   │   ├── apply-migrations.ts     # D1 migration setup helper
 │   │   ├── auth.test.ts            # Auth integration tests (session CRUD)
 │   │   ├── bindings.test.ts        # CF bindings tests
 │   │   ├── db.test.ts              # Database helper tests (Job, User CRUD)
+│   │   ├── hooks.test.ts           # Hooks.server.ts integration tests
+│   │   ├── upload.test.ts          # Upload flow integration tests
 │   │   └── types.d.ts              # TypeScript definitions for cloudflare:test
 │   ├── e2e/                        # Playwright E2E tests
-│   │   └── landing.spec.ts
-│   └── helpers/                    # Test utilities (future)
+│   │   └── landing.spec.ts         # Landing page upload flow tests
+│   ├── fixtures/                   # Test fixture files
+│   │   ├── pdfs/
+│   │   │   ├── sample-1page.pdf
+│   │   │   ├── sample-10pages.pdf
+│   │   │   └── sample-51pages.pdf
+│   │   └── invalid/
+│   │       └── not-a-pdf.txt
+│   └── helpers/                    # Test utilities
+│       └── request-event.ts        # Mock RequestEvent for handler tests
 │
 ├── .github/
 │   └── workflows/
@@ -191,7 +218,9 @@ cleanebook/
 ├── svelte.config.js
 ├── tsconfig.json
 ├── vite.config.ts
-├── vitest.config.ts                # Vitest configuration
+├── vitest.config.ts                # Vitest configuration (unit tests)
+├── vitest.handler.config.ts        # Vitest configuration (handler tests)
+├── vitest.integration.config.ts    # Vitest configuration (integration tests)
 ├── playwright.config.ts            # Playwright configuration
 ├── postcss.config.js               # PostCSS with Tailwind CSS v4
 ├── eslint.config.js                # ESLint flat config (TypeScript + Svelte)
