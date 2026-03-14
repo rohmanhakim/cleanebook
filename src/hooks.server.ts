@@ -50,11 +50,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = null;
   }
 
-  // Resolve the response first
-  const response = await resolve(event);
+  // Track if we need to set a session cookie on the response
+  let newSessionToken: string | null = null;
 
-  // Lazy anonymous user creation - only on routes that represent real interactions
-  // This prevents flooding D1 with bot traffic from marketing page hits
+  // Lazy anonymous user creation - BEFORE resolve
+  // This ensures locals.user is populated when route handlers run
+  // Only create on routes that represent real interactions (avoids flooding D1 with bot traffic)
   if (!event.locals.user && platform?.env?.DB) {
     const path = event.url.pathname;
     const shouldCreateAnon = ANON_SESSION_ROUTES.some((r) => path.startsWith(r));
@@ -63,19 +64,24 @@ export const handle: Handle = async ({ event, resolve }) => {
       try {
         // Create anonymous user and session
         const anonUser = await createAnonymousUser(platform.env.DB);
-        const sessionToken = generateSessionToken();
-        await createSession(platform.env.DB, anonUser.id, sessionToken);
+        newSessionToken = generateSessionToken();
+        await createSession(platform.env.DB, anonUser.id, newSessionToken);
 
-        // Set user in locals for this request
+        // Set user in locals for this request - BEFORE resolve
         event.locals.user = anonUser;
-
-        // Set cookie on the response
-        response.headers.append('Set-Cookie', setSessionCookie(sessionToken));
       } catch (error) {
         // Log but don't fail the request - user will remain null
         console.error('Failed to create anonymous user:', error);
       }
     }
+  }
+
+  // Now resolve the response with locals.user properly populated
+  const response = await resolve(event);
+
+  // Set cookie on the response if we created a new session
+  if (newSessionToken) {
+    response.headers.append('Set-Cookie', setSessionCookie(newSessionToken));
   }
 
   return response;
