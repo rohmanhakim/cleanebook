@@ -1,14 +1,12 @@
 <!--
-Document Version: 1.1.0
-Last Updated: 2026-03-13
+Document Version: 1.2.0
+Last Updated: 2026-03-14
 Source Commits:
-  - 00b4f075cc66b0f6506d5e96628d442c53c74a6b (Task 1B - Anonymous User Types)
-  - db54a309112fc82caa76fbebdaecf29d0c01baa1 (Task 1C - Auth Infrastructure)
+  - 7f3f65499be5c899574383146bc00e5ca33cccd7 (Phase 002 - PDF Viewer)
 Changes:
-  - Updated App.Locals.user type with anonymous user fields
-  - Added 'anonymous' to plan union type
-  - Added BASIC_AUTH_USER/BASIC_AUTH_PASSWORD to Platform.env
-  - Renamed hfApiKey to hfApiKeyEncrypted
+  - Added AWS SDK packages for R2 presigned URLs
+  - Added paneforge for resizable panels (shadcn-svelte dependency)
+  - Added svelte-media-query-store for responsive detection
 -->
 # CleanEbook — Dependency Stack
 
@@ -61,6 +59,8 @@ Do NOT upgrade versions without re-verifying. Do NOT use versions not listed her
     "wrangler": "^4.72.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1009.0",
+    "@aws-sdk/s3-request-presigner": "^3.1009.0",
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
     "@polar-sh/checkout": "^0.2.0",
@@ -72,9 +72,11 @@ Do NOT upgrade versions without re-verifying. Do NOT use versions not listed her
     "fflate": "^0.8.2",
     "konva": "^10.2.0",
     "nanoid": "^5.0.7",
+    "paneforge": "^1.0.2",
     "pdfjs-dist": "^5.5.207",
     "pdfjs-serverless": "^1.1.0",
     "svelte-konva": "^1.0.1",
+    "svelte-media-query-store": "^1.0.0",
     "svelte-sonner": "^1.1.0",
     "sveltekit-superforms": "^2.30.0",
     "zod": "^3.25.67"
@@ -113,6 +115,20 @@ This package is deprecated. The correct adapter is `@sveltejs/adapter-cloudflare
 There is no official SvelteKit adapter for Polar. Use `@polar-sh/sdk` directly
 for all API calls and `@polar-sh/checkout` for the embeddable checkout component.
 Do NOT install the Next.js or Astro Polar packages.
+
+### AWS SDK — S3 client for R2 presigned URLs
+The `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` packages are used
+to generate presigned URLs for R2 objects. R2 provides an S3-compatible API.
+These packages are server-side only (used in `+server.ts` routes).
+
+### paneforge — Resizable panels for Svelte
+`paneforge` is the Svelte port of `react-resizable-panels` and is the correct
+package for shadcn-svelte's Resizable component. Do NOT attempt to install
+`svelte-resizable-panels` (doesn't exist).
+
+### svelte-media-query-store — Responsive detection
+Provides reactive media query stores for desktop/mobile detection. Used for
+desktop-first responsive layouts.
 
 ---
 
