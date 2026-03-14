@@ -2,7 +2,7 @@
 
 ## Status
 
-**Open** - Needs fix in next task
+**Resolved** - Fixed with explicit timestamps in test
 
 ## Severity
 

@@ -350,27 +350,18 @@ describe('Database Helpers', () => {
     it('should return jobs ordered by created_at DESC', async () => {
       const user = await createAnonymousUser(env.DB);
 
-      const job1: Omit<Job, 'createdAt' | 'updatedAt'> = {
-        id: `job_older_${nanoid()}`,
-        userId: user.id,
-        status: 'queued',
-        pdfKey: `uploads/${user.id}/older.pdf`,
-        epubKey: null,
-        templateId: null,
-        pdfPageCount: 10,
-        pdfFilename: 'older.pdf',
-        errorMessage: null,
-        reviewPages: null,
-        pipelineStep: null,
-        ocrModel: 'lightonai/LightOnOCR-2-1B',
-        layoutModel: 'microsoft/layoutlmv3-base',
-      };
+      // Use explicit timestamps to avoid flaky test due to SQLite's 1-second resolution
+      // Job 1: Insert with explicit older timestamp (1 second in the past)
+      const job1Id = `job_older_${nanoid()}`;
+      await env.DB.prepare(`
+        INSERT INTO jobs (id, user_id, status, pdf_key, pdf_page_count, pdf_filename, created_at, updated_at, ocr_model, layout_model)
+        VALUES (?, ?, 'queued', ?, 10, 'older.pdf', datetime('now', '-1 second'), datetime('now', '-1 second'), ?, ?)
+      `).bind(job1Id, user.id, `uploads/${user.id}/older.pdf`, 'lightonai/LightOnOCR-2-1B', 'microsoft/layoutlmv3-base').run();
 
-      // Small delay to ensure different timestamps
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
+      // Job 2: Insert with current timestamp using createJob helper
+      const job2Id = `job_newer_${nanoid()}`;
       const job2: Omit<Job, 'createdAt' | 'updatedAt'> = {
-        id: `job_newer_${nanoid()}`,
+        id: job2Id,
         userId: user.id,
         status: 'queued',
         pdfKey: `uploads/${user.id}/newer.pdf`,
@@ -385,14 +376,13 @@ describe('Database Helpers', () => {
         layoutModel: 'microsoft/layoutlmv3-base',
       };
 
-      await createJob(env.DB, job1);
       await createJob(env.DB, job2);
 
       const result = await getJobsByUserId(env.DB, user.id);
 
-      // Newer job should be first
-      expect(result[0].id).toBe(job2.id);
-      expect(result[1].id).toBe(job1.id);
+      // Newer job should be first (job2 has later timestamp)
+      expect(result[0].id).toBe(job2Id);
+      expect(result[1].id).toBe(job1Id);
     });
   });
 
