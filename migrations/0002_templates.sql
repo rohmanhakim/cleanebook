@@ -1,5 +1,5 @@
 -- Templates: reusable region rule sets
-CREATE TABLE templates (
+CREATE TABLE IF NOT EXISTS templates (
   id          TEXT PRIMARY KEY,                   -- nanoid(), e.g. "tpl_abc123"
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,                      -- e.g. "O'Reilly Tech Books"
@@ -12,4 +12,4 @@ CREATE TABLE templates (
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_templates_user_id ON templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_templates_user_id ON templates(user_id);

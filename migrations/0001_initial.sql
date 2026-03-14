@@ -1,5 +1,5 @@
 -- Users
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id                    TEXT PRIMARY KEY,         -- nanoid(), e.g. "usr_abc123" or "anon_abc123"
   email                 TEXT UNIQUE,              -- NULL for anonymous users
   name                  TEXT NOT NULL DEFAULT 'Anonymous',
@@ -17,7 +17,7 @@ CREATE TABLE users (
 );
 
 -- OAuth accounts (linked to users)
-CREATE TABLE oauth_accounts (
+CREATE TABLE IF NOT EXISTS oauth_accounts (
   provider_id           TEXT NOT NULL,            -- 'github' | 'google'
   provider_user_id      TEXT NOT NULL,
   user_id               TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -25,7 +25,7 @@ CREATE TABLE oauth_accounts (
 );
 
 -- Sessions
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY,                   -- random 40-char hex
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at  TEXT NOT NULL,                      -- ISO datetime
@@ -33,7 +33,7 @@ CREATE TABLE sessions (
 );
 
 -- Jobs
-CREATE TABLE jobs (
+CREATE TABLE IF NOT EXISTS jobs (
   id              TEXT PRIMARY KEY,               -- nanoid(), e.g. "job_abc123"
   user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   status          TEXT NOT NULL DEFAULT 'queued', -- see Job Status below
@@ -60,10 +60,7 @@ CREATE TABLE jobs (
 -- 'failed'        → unrecoverable error, see error_message
 -- 'cancelled'     → user cancelled
 
-CREATE INDEX idx_jobs_user_id ON jobs(user_id);
-CREATE INDEX idx_jobs_status ON jobs(status);
-CREATE INDEX idx_sessions_user_id ON sessions(user_id);
-CREATE INDEX idx_users_is_anonymous ON users(is_anonymous);
-CREATE INDEX idx_users_polar_customer_id ON users(polar_customer_id);
--- Used by cleanup cron to find expired anonymous users efficiently
-CREATE INDEX idx_users_anon_created ON users(created_at) WHERE is_anonymous = 1;
+CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_polar_customer_id ON users(polar_customer_id);
