@@ -1,18 +1,24 @@
 #!/bin/bash
-# Clear local D1 database (without deleting it)
-# Usage: ./scripts/clear-local-db.sh
+# Clear production D1 database (without deleting it)
+# Usage: ./scripts/clear-prod-db.sh
 #
-# This script clears all data from the local D1 database tables.
+# ⚠️  WARNING: This will DELETE ALL DATA in production!
+#    Only use during development when data loss is acceptable.
+#    THIS SCRIPT WILL BE DELETED BEFORE PRODUCTION LAUNCH.
+#
+# This script clears all data from the production D1 database tables.
 # The database schema is preserved - only rows are deleted.
 #
 # Prerequisites:
-# - Local D1 database must exist (created via wrangler d1 migrations apply --local)
+# - User must be logged into wrangler (wrangler login)
+# - Production D1 database must exist
 
 set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║  🗑️  Clear Local D1 Database                                 ║"
-echo "║  This will DELETE ALL DATA in the local database!           ║"
+echo "║  ⚠️  PRODUCTION D1 Database Clear Script                     ║"
+echo "║  This will DELETE ALL DATA in the PRODUCTION database!       ║"
+echo "║  THIS SCRIPT WILL BE DELETED BEFORE PRODUCTION LAUNCH.      ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -22,12 +28,12 @@ if ! command -v node &> /dev/null; then
     source ~/.nvm/nvm.sh
 fi
 
-# Switch to local environment
+# Switch to production environment
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Switching to local environment..."
+echo "Switching to production environment..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-cp wrangler.dev.jsonc wrangler.jsonc
-echo "✓ Copied wrangler.dev.jsonc → wrangler.jsonc"
+cp wrangler.prod.jsonc wrangler.jsonc
+echo "✓ Copied wrangler.prod.jsonc → wrangler.jsonc"
 echo ""
 
 # Show current row counts
@@ -38,7 +44,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 get_count() {
     local table=$1
     local output
-    output=$(npx wrangler d1 execute cleanebook-db --local --command "SELECT COUNT(*) as count FROM $table" 2>/dev/null)
+    output=$(npx wrangler d1 execute cleanebook-db --remote --command "SELECT COUNT(*) as count FROM $table" 2>/dev/null)
     # Parse the count from the output - handle multiple formats
     local count
     count=$(echo "$output" | grep -oE '"count"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1)
@@ -61,15 +67,24 @@ echo "  templates:      $templates_count"
 echo "  oauth_accounts: $oauth_count"
 echo ""
 
-# Confirmation prompt
+# Calculate total
 total=$((users_count + sessions_count + jobs_count + templates_count + oauth_count))
+
 if [ "$total" -eq 0 ]; then
     echo "✅ Database is already empty. Nothing to clear."
     exit 0
 fi
 
-read -p "Clear all data? Type 'yes' to confirm: " confirm
-if [ "$confirm" != "yes" ]; then
+# Double confirmation for production
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "⚠️  DOUBLE CONFIRMATION REQUIRED"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "You are about to DELETE ALL DATA in PRODUCTION:"
+echo "  - $total database rows"
+echo ""
+read -p "Type 'DELETE PRODUCTION DATA' to confirm: " confirm
+if [ "$confirm" != "DELETE PRODUCTION DATA" ]; then
     echo "Aborted. No changes made."
     exit 0
 fi
@@ -84,19 +99,19 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # This respects foreign key constraints
 
 echo "[1/5] Clearing oauth_accounts..."
-npx wrangler d1 execute cleanebook-db --local --command "DELETE FROM oauth_accounts"
+npx wrangler d1 execute cleanebook-db --remote --command "DELETE FROM oauth_accounts"
 
 echo "[2/5] Clearing sessions..."
-npx wrangler d1 execute cleanebook-db --local --command "DELETE FROM sessions"
+npx wrangler d1 execute cleanebook-db --remote --command "DELETE FROM sessions"
 
 echo "[3/5] Clearing jobs..."
-npx wrangler d1 execute cleanebook-db --local --command "DELETE FROM jobs"
+npx wrangler d1 execute cleanebook-db --remote --command "DELETE FROM jobs"
 
 echo "[4/5] Clearing templates..."
-npx wrangler d1 execute cleanebook-db --local --command "DELETE FROM templates"
+npx wrangler d1 execute cleanebook-db --remote --command "DELETE FROM templates"
 
 echo "[5/5] Clearing users..."
-npx wrangler d1 execute cleanebook-db --local --command "DELETE FROM users"
+npx wrangler d1 execute cleanebook-db --remote --command "DELETE FROM users"
 
 echo ""
 
@@ -118,8 +133,10 @@ echo "  oauth_accounts: $oauth_count"
 echo ""
 
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                   Database Cleared!                          ║"
+echo "║                   Production Database Cleared!               ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 echo "✅ All tables cleared. Schema preserved."
+echo ""
+echo "⚠️  REMEMBER: Delete this script before production launch!"
 echo ""

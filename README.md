@@ -206,6 +206,16 @@ The project uses two configuration files:
 
 The playbook scripts copy the appropriate config to `wrangler.jsonc` (which is gitignored).
 
+### Environment Switching
+
+To manually switch the target environment:
+
+```bash
+./scripts/switch-env.sh local    # Switch to local development
+./scripts/switch-env.sh prod     # Switch to production
+./scripts/switch-env.sh preview  # Switch to preview (same as prod)
+```
+
 ### Emergency Database Reset
 
 ⚠️ **Warning**: This deletes ALL data! Only use during early development.

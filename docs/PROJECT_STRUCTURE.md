@@ -214,6 +214,15 @@ cleanebook/
 ├── .husky/
 │   └── pre-commit                  # Git pre-commit hook (format + lint)
 │
+├── scripts/
+│   ├── deploy-local.sh             # Local deployment playbook
+│   ├── deploy-preview.sh           # Preview deployment playbook
+│   ├── deploy-prod.sh              # Production deployment playbook
+│   ├── switch-env.sh               # Switch wrangler.jsonc to target environment
+│   ├── clear-local-db.sh           # Clear local D1 database (dev only)
+│   ├── clear-prod-db.sh            # Clear production D1 database (dev only, delete before launch)
+│   └── reset-d1-database.sh        # Emergency: recreate D1 database from scratch
+│
 ├── wrangler.jsonc                  # CF config (see ARCHITECTURE.md)
 ├── svelte.config.js
 ├── tsconfig.json
