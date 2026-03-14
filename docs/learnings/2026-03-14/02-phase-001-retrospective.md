@@ -189,6 +189,7 @@ All 156 tests pass (unit: 36, handler: 67, integration: 53).
 
 **Severity**: Minor  
 **Status**: ✅ Fixed
+**Commit**: `ed8b1682421de8b970fa7b804e80da10817dcb9b`
 
 **Description**: In Chromium-based browsers (Chromium, Opera, Brave), drag-and-drop upload does not trigger file selection. Users must click on the dropzone to select a file. Firefox works correctly.
 
