@@ -42,12 +42,13 @@ describe('UploadDropzone', () => {
       expect(input?.getAttribute('accept')).toBe('.pdf');
     });
 
-    it('should render as a button element', () => {
+    it('should render as a div with role="button" for Chromium drag-drop compatibility', () => {
       const { container } = render(UploadDropzone);
 
-      const button = container.querySelector('button');
-      expect(button).toBeTruthy();
-      expect(button?.getAttribute('type')).toBe('button');
+      // Use div with role="button" instead of <button> for better drag-drop support in Chromium
+      const dropzone = container.querySelector('div[role="button"]');
+      expect(dropzone).toBeTruthy();
+      expect(dropzone?.getAttribute('tabindex')).toBe('0');
     });
   });
 
@@ -55,41 +56,120 @@ describe('UploadDropzone', () => {
     it('should handle dragover event', async () => {
       const { container } = render(UploadDropzone);
 
-      const button = container.querySelector('button')!;
-      await fireEvent.dragOver(button);
+      const dropzone = container.querySelector('div[role="button"]')!;
+      await fireEvent.dragOver(dropzone);
 
-      // Button should have drag-over styling class
-      expect(button.classList.contains('border-brand-500')).toBe(true);
+      // Dropzone should have drag-over styling class
+      expect(dropzone.classList.contains('border-brand-500')).toBe(true);
     });
 
     it('should handle dragleave event', async () => {
       const { container } = render(UploadDropzone);
 
-      const button = container.querySelector('button')!;
-      await fireEvent.dragOver(button);
-      expect(button.classList.contains('border-brand-500')).toBe(true);
+      const dropzone = container.querySelector('div[role="button"]')!;
+      await fireEvent.dragOver(dropzone);
+      expect(dropzone.classList.contains('border-brand-500')).toBe(true);
 
-      await fireEvent.dragLeave(button);
-      expect(button.classList.contains('border-brand-500')).toBe(false);
+      await fireEvent.dragLeave(dropzone);
+      expect(dropzone.classList.contains('border-brand-500')).toBe(false);
+    });
+
+    it('should set dropEffect to "copy" during dragover for Chromium compatibility', async () => {
+      const { container } = render(UploadDropzone);
+
+      const dropzone = container.querySelector('div[role="button"]')!;
+
+      // Create a mock DataTransfer object
+      const dataTransfer = { dropEffect: '' };
+      await fireEvent.dragOver(dropzone, { dataTransfer });
+
+      // Chromium requires explicit dropEffect for proper drag-drop behavior
+      expect(dataTransfer.dropEffect).toBe('copy');
     });
   });
 
   describe('click interaction', () => {
-    it('should trigger file input click when button is clicked', async () => {
+    it('should trigger file input click when dropzone is clicked', async () => {
       const { container } = render(UploadDropzone);
 
-      const button = container.querySelector('button')!;
+      const dropzone = container.querySelector('div[role="button"]')!;
 
       // Spy on input.click - use prototype method for proper typing
       const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
 
-      await fireEvent.click(button);
+      await fireEvent.click(dropzone);
+
+      expect(clickSpy).toHaveBeenCalledOnce();
+    });
+
+    it('should trigger file input on Enter key for keyboard accessibility', async () => {
+      const { container } = render(UploadDropzone);
+
+      const dropzone = container.querySelector('div[role="button"]')!;
+      const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
+
+      await fireEvent.keyDown(dropzone, { key: 'Enter' });
+
+      expect(clickSpy).toHaveBeenCalledOnce();
+    });
+
+    it('should trigger file input on Space key for keyboard accessibility', async () => {
+      const { container } = render(UploadDropzone);
+
+      const dropzone = container.querySelector('div[role="button"]')!;
+      const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
+
+      await fireEvent.keyDown(dropzone, { key: ' ' });
 
       expect(clickSpy).toHaveBeenCalledOnce();
     });
   });
 
   describe('PDF validation', () => {
+    it('should accept zero-size PDF file (browser drag-drop quirk)', async () => {
+      // Mock fetch for upload flow
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            key: 'uploads/user123/test.pdf',
+            filename: 'test.pdf',
+            pageCount: 1,
+            sizeBytes: 0,
+          }),
+      });
+
+      const { container } = render(UploadDropzone);
+
+      const input = container.querySelector('input[type="file"]')!;
+
+      // Create a zero-size file to simulate Chromium drag-drop behavior
+      const file = new File([], 'test.pdf', { type: 'application/pdf' });
+
+      const dataTransfer = {
+        files: [file],
+        items: [],
+        types: [],
+      };
+
+      Object.defineProperty(input, 'files', {
+        value: dataTransfer.files,
+        writable: false,
+      });
+
+      await fireEvent.change(input);
+
+      // Zero-size files should be accepted (server validates actual content)
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith(
+          '/api/upload',
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+      });
+    });
+
     it('should show error for non-PDF extension', async () => {
       const { container } = render(UploadDropzone);
 

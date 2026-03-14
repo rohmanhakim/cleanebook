@@ -41,6 +41,8 @@ source ~/.nvm/nvm.sh && pnpm dev
 
 The app will be available at http://localhost:5173/
 
+> **⚠️ Browser Compatibility Note**: Flatpak and snap browsers (e.g., Ungoogled Chromium, Brave via Flatpak) may fail with `ERR_ALPN_NEGOTIATION_FAILED` when connecting to `localhost`. Use native browser installations (`.deb` packages, system package manager) or Firefox for local development.
+
 ### 4. Type Checking
 
 ```bash

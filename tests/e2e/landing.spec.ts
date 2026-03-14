@@ -141,8 +141,8 @@ test.describe('Upload flow', () => {
     // Create a non-PDF file and upload it
     const fileChooserPromise = page.waitForEvent('filechooser');
 
-    // Click the dropzone to trigger file input
-    await page.getByText('Drop your PDF here').click();
+    // Click the dropzone (div[role="button"]) to trigger file input
+    await page.locator('div[role="button"]').click();
 
     const fileChooser = await fileChooserPromise;
 
@@ -161,9 +161,9 @@ test.describe('Upload flow', () => {
   test('should show loading state during upload', async ({ page }) => {
     await page.goto('/');
 
-    // Click the dropzone to trigger file input
+    // Click the dropzone (div[role="button"]) to trigger file input
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.getByText('Drop your PDF here').click();
+    await page.locator('div[role="button"]').click();
     const fileChooser = await fileChooserPromise;
 
     // Upload a valid PDF (use fixture)
@@ -181,9 +181,9 @@ test.describe('Upload flow', () => {
   test('should redirect to editor after successful upload', async ({ page }) => {
     await page.goto('/');
 
-    // Click the dropzone to trigger file input
+    // Click the dropzone (div[role="button"]) to trigger file input
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.getByText('Drop your PDF here').click();
+    await page.locator('div[role="button"]').click();
     const fileChooser = await fileChooserPromise;
 
     // Upload a valid PDF

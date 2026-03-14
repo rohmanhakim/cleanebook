@@ -38,6 +38,12 @@
       return false;
     }
 
+    // Handle Chromium drag-drop quirk where file.size is 0 initially
+    // Accept zero-size files and let server-side validation handle them
+    if (file.size === 0) {
+      return true;
+    }
+
     // Read first 5 bytes to validate magic bytes
     const slice = file.slice(0, 5);
     const buffer = await slice.arrayBuffer();
@@ -142,12 +148,27 @@
   }
 
   /**
+   * Keyboard handler for accessibility (Enter/Space to trigger file input)
+   */
+  function handleKeydown(e: KeyboardEvent): void {
+    if (isUploading) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      inputRef?.click();
+    }
+  }
+
+  /**
    * Drag over handler
    */
   function handleDragOver(e: DragEvent): void {
     if (isUploading) return;
     e.preventDefault();
     e.stopPropagation();
+    // Explicitly set dropEffect for Chromium compatibility
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
     isDragOver = true;
   }
 
@@ -201,19 +222,21 @@
     disabled={isUploading}
   />
 
-  <!-- Drop zone -->
-  <button
-    type="button"
+  <!-- Drop zone - using div instead of button for better Chromium drag-drop compatibility -->
+  <div
+    role="button"
+    tabindex="0"
     class="border-2 border-dashed rounded-xl p-12 text-center transition-colors w-full cursor-pointer
       {isDragOver
       ? 'border-brand-500 bg-brand-50'
       : 'border-muted-foreground/25 bg-muted/30 hover:bg-muted/50 hover:border-brand-500/50'}
       {isUploading ? 'opacity-70 cursor-not-allowed' : ''}"
     onclick={handleClick}
+    onkeydown={handleKeydown}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
     ondrop={handleDrop}
-    disabled={isUploading}
+    aria-disabled={isUploading}
   >
     <div class="flex flex-col items-center gap-4">
       <div
@@ -238,5 +261,5 @@
       </div>
       <p class="text-xs text-muted-foreground">Max 50 pages • Free • No signup required</p>
     </div>
-  </button>
+  </div>
 </div>
