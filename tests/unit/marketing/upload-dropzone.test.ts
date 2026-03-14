@@ -14,13 +14,57 @@ vi.mock('svelte-sonner', () => ({
 import { toast } from 'svelte-sonner';
 import { goto } from '$app/navigation';
 
+// Type for our mock XHR
+interface MockXHR {
+  open: ReturnType<typeof vi.fn>;
+  send: ReturnType<typeof vi.fn>;
+  setRequestHeader: ReturnType<typeof vi.fn>;
+  upload: {
+    onprogress: ((e: { loaded: number; total: number; lengthComputable: boolean }) => void) | null;
+  };
+  onload: (() => void) | null;
+  onerror: (() => void) | null;
+  status: number;
+  responseText: string;
+}
+
+// Helper to create mock XHR
+function createMockXHR(): MockXHR {
+  return {
+    open: vi.fn(),
+    send: vi.fn(),
+    setRequestHeader: vi.fn(),
+    upload: { onprogress: null },
+    onload: null,
+    onerror: null,
+    status: 200,
+    responseText: '',
+  };
+}
+
 describe('UploadDropzone', () => {
+  let xhrInstances: MockXHR[];
+  let originalXMLHttpRequest: typeof window.XMLHttpRequest;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    xhrInstances = [];
+
+    // Mock XMLHttpRequest
+    originalXMLHttpRequest = window.XMLHttpRequest;
+    window.XMLHttpRequest = vi.fn(() => {
+      const instance = createMockXHR();
+      xhrInstances.push(instance);
+      return instance as unknown as XMLHttpRequest;
+    }) as unknown as typeof window.XMLHttpRequest;
+
+    // Mock fetch for job creation
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    window.XMLHttpRequest = originalXMLHttpRequest;
   });
 
   describe('rendering', () => {
@@ -127,16 +171,21 @@ describe('UploadDropzone', () => {
 
   describe('PDF validation', () => {
     it('should accept zero-size PDF file (browser drag-drop quirk)', async () => {
-      // Mock fetch for upload flow
-      global.fetch = vi.fn().mockResolvedValueOnce({
+      // Setup mock XHR to return success
+      const mockUploadResponse = {
+        key: 'uploads/user123/test.pdf',
+        filename: 'test.pdf',
+        pageCount: 1,
+        sizeBytes: 0,
+      };
+      const mockJobResponse = {
+        jobId: 'job_abc123',
+        status: 'queued' as const,
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: () =>
-          Promise.resolve({
-            key: 'uploads/user123/test.pdf',
-            filename: 'test.pdf',
-            pageCount: 1,
-            sizeBytes: 0,
-          }),
+        json: () => Promise.resolve(mockJobResponse),
       });
 
       const { container } = render(UploadDropzone);
@@ -159,10 +208,20 @@ describe('UploadDropzone', () => {
 
       await fireEvent.change(input);
 
-      // Zero-size files should be accepted (server validates actual content)
+      // Wait for XHR to be created and simulate response
       await vi.waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith(
-          '/api/upload',
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+      xhr.status = 200;
+      xhr.responseText = JSON.stringify(mockUploadResponse);
+      xhr.onload?.();
+
+      // Wait for job creation
+      await vi.waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/job/create',
           expect.objectContaining({
             method: 'POST',
           })
@@ -227,31 +286,12 @@ describe('UploadDropzone', () => {
     });
   });
 
-  describe('upload flow', () => {
-    it('should call upload API and create job on valid PDF', async () => {
-      // Mock successful upload response
-      const mockUploadResponse = {
-        key: 'uploads/user123/test.pdf',
-        filename: 'test.pdf',
-        pageCount: 10,
-        sizeBytes: 1024,
-      };
-
-      const mockJobResponse = {
-        jobId: 'job_abc123',
-        status: 'queued' as const,
-      };
-
-      global.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockUploadResponse),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockJobResponse),
-        });
+  describe('upload flow with progress', () => {
+    it('should use XMLHttpRequest for upload', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'job_abc123', status: 'queued' }),
+      });
 
       const { container } = render(UploadDropzone);
 
@@ -274,36 +314,52 @@ describe('UploadDropzone', () => {
 
       await fireEvent.change(input);
 
-      // Wait for async operations
+      // Wait for XHR to be created
       await vi.waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith(
-          '/api/upload',
-          expect.objectContaining({
-            method: 'POST',
-          })
-        );
+        expect(xhrInstances.length).toBeGreaterThan(0);
       });
 
-      expect(fetch).toHaveBeenCalledWith(
-        '/api/job/create',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({
-            pdfKey: mockUploadResponse.key,
-            pdfFilename: mockUploadResponse.filename,
-            pdfPageCount: mockUploadResponse.pageCount,
-          }),
-        })
-      );
-
-      expect(goto).toHaveBeenCalledWith('/editor/job_abc123');
+      const xhr = xhrInstances[0];
+      expect(xhr.open).toHaveBeenCalledWith('POST', '/api/upload');
+      expect(xhr.send).toHaveBeenCalled();
     });
 
-    it('should show error when upload fails', async () => {
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        status: 413,
-        json: () => Promise.resolve({ message: 'File too large' }),
+    it('should show progress bar during upload', async () => {
+      const { container } = render(UploadDropzone);
+
+      const input = container.querySelector('input[type="file"]')!;
+
+      // Create a valid PDF file
+      const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+      const file = new File([pdfContent], 'test.pdf', { type: 'application/pdf' });
+
+      const dataTransfer = {
+        files: [file],
+        items: [],
+        types: [],
+      };
+
+      Object.defineProperty(input, 'files', {
+        value: dataTransfer.files,
+        writable: false,
+      });
+
+      await fireEvent.change(input);
+
+      // Wait for uploading state
+      await vi.waitFor(() => {
+        expect(screen.getByText('Uploading...')).toBeTruthy();
+      });
+
+      // Progress bar should be visible
+      const progressBar = container.querySelector('[data-slot="progress"]');
+      expect(progressBar).toBeTruthy();
+    });
+
+    it('should update progress on xhr.upload.onprogress', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'job_abc123', status: 'queued' }),
       });
 
       const { container } = render(UploadDropzone);
@@ -325,6 +381,196 @@ describe('UploadDropzone', () => {
       });
 
       await fireEvent.change(input);
+
+      // Wait for XHR to be created
+      await vi.waitFor(() => {
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+
+      // Simulate progress updates
+      expect(xhr.upload.onprogress).not.toBeNull();
+
+      // 50% progress
+      xhr.upload.onprogress!({ loaded: 50, total: 100, lengthComputable: true });
+      await vi.waitFor(() => {
+        expect(screen.getByText('50%')).toBeTruthy();
+      });
+
+      // 100% progress
+      xhr.upload.onprogress!({ loaded: 100, total: 100, lengthComputable: true });
+      await vi.waitFor(() => {
+        expect(screen.getByText('100%')).toBeTruthy();
+      });
+    });
+
+    it('should show "Creating job..." after upload completes', async () => {
+      const mockUploadResponse = {
+        key: 'uploads/user123/test.pdf',
+        filename: 'test.pdf',
+        pageCount: 10,
+        sizeBytes: 1024,
+      };
+
+      // Create a promise that we can resolve manually to control timing
+      let resolveJobCreation: (value: {
+        ok: boolean;
+        json: () => Promise<{ jobId: string; status: string }>;
+      }) => void;
+      const jobCreationPromise = new Promise<{
+        ok: boolean;
+        json: () => Promise<{ jobId: string; status: string }>;
+      }>((resolve) => {
+        resolveJobCreation = resolve;
+      });
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(jobCreationPromise);
+
+      const { container } = render(UploadDropzone);
+
+      const input = container.querySelector('input[type="file"]')!;
+
+      const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+      const file = new File([pdfContent], 'test.pdf', { type: 'application/pdf' });
+
+      const dataTransfer = {
+        files: [file],
+        items: [],
+        types: [],
+      };
+
+      Object.defineProperty(input, 'files', {
+        value: dataTransfer.files,
+        writable: false,
+      });
+
+      await fireEvent.change(input);
+
+      // Wait for XHR to be created
+      await vi.waitFor(() => {
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+
+      // Simulate upload completion
+      xhr.status = 200;
+      xhr.responseText = JSON.stringify(mockUploadResponse);
+      xhr.onload?.();
+
+      // Now we should see "Creating job..." before the fetch resolves
+      await vi.waitFor(() => {
+        expect(screen.getByText('Creating job...')).toBeTruthy();
+      });
+
+      // Resolve the job creation to clean up
+      resolveJobCreation!({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'job_abc123', status: 'queued' }),
+      });
+    });
+
+    it('should redirect to editor after successful upload and job creation', async () => {
+      const mockUploadResponse = {
+        key: 'uploads/user123/test.pdf',
+        filename: 'test.pdf',
+        pageCount: 10,
+        sizeBytes: 1024,
+      };
+
+      const mockJobResponse = {
+        jobId: 'job_abc123',
+        status: 'queued' as const,
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockJobResponse),
+      });
+
+      const { container } = render(UploadDropzone);
+
+      const input = container.querySelector('input[type="file"]')!;
+
+      const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+      const file = new File([pdfContent], 'test.pdf', { type: 'application/pdf' });
+
+      const dataTransfer = {
+        files: [file],
+        items: [],
+        types: [],
+      };
+
+      Object.defineProperty(input, 'files', {
+        value: dataTransfer.files,
+        writable: false,
+      });
+
+      await fireEvent.change(input);
+
+      // Wait for XHR to be created
+      await vi.waitFor(() => {
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+
+      // Simulate upload completion
+      xhr.status = 200;
+      xhr.responseText = JSON.stringify(mockUploadResponse);
+      xhr.onload?.();
+
+      // Wait for job creation and redirect
+      await vi.waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/job/create',
+          expect.objectContaining({
+            method: 'POST',
+            body: JSON.stringify({
+              pdfKey: mockUploadResponse.key,
+              pdfFilename: mockUploadResponse.filename,
+              pdfPageCount: mockUploadResponse.pageCount,
+            }),
+          })
+        );
+      });
+
+      expect(goto).toHaveBeenCalledWith('/editor/job_abc123');
+    });
+
+    it('should show error when upload fails', async () => {
+      const { container } = render(UploadDropzone);
+
+      const input = container.querySelector('input[type="file"]')!;
+
+      const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+      const file = new File([pdfContent], 'test.pdf', { type: 'application/pdf' });
+
+      const dataTransfer = {
+        files: [file],
+        items: [],
+        types: [],
+      };
+
+      Object.defineProperty(input, 'files', {
+        value: dataTransfer.files,
+        writable: false,
+      });
+
+      await fireEvent.change(input);
+
+      // Wait for XHR to be created
+      await vi.waitFor(() => {
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+
+      // Simulate upload failure
+      xhr.status = 413;
+      xhr.responseText = JSON.stringify({ message: 'File too large' });
+      xhr.onload?.();
 
       await vi.waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Upload failed', {
@@ -334,23 +580,18 @@ describe('UploadDropzone', () => {
     });
 
     it('should show error when job creation fails', async () => {
-      global.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              key: 'uploads/user123/test.pdf',
-              filename: 'test.pdf',
-              pageCount: 10,
-              sizeBytes: 1024,
-            }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 403,
-          json: () => Promise.resolve({ message: 'Conversion limit exceeded' }),
-        });
+      const mockUploadResponse = {
+        key: 'uploads/user123/test.pdf',
+        filename: 'test.pdf',
+        pageCount: 10,
+        sizeBytes: 1024,
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: () => Promise.resolve({ message: 'Conversion limit exceeded' }),
+      });
 
       const { container } = render(UploadDropzone);
 
@@ -372,9 +613,59 @@ describe('UploadDropzone', () => {
 
       await fireEvent.change(input);
 
+      // Wait for XHR to be created
+      await vi.waitFor(() => {
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+
+      // Simulate upload completion
+      xhr.status = 200;
+      xhr.responseText = JSON.stringify(mockUploadResponse);
+      xhr.onload?.();
+
       await vi.waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Failed to create job', {
           description: 'Conversion limit exceeded',
+        });
+      });
+    });
+
+    it('should handle network error during upload', async () => {
+      const { container } = render(UploadDropzone);
+
+      const input = container.querySelector('input[type="file"]')!;
+
+      const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+      const file = new File([pdfContent], 'test.pdf', { type: 'application/pdf' });
+
+      const dataTransfer = {
+        files: [file],
+        items: [],
+        types: [],
+      };
+
+      Object.defineProperty(input, 'files', {
+        value: dataTransfer.files,
+        writable: false,
+      });
+
+      await fireEvent.change(input);
+
+      // Wait for XHR to be created
+      await vi.waitFor(() => {
+        expect(xhrInstances.length).toBeGreaterThan(0);
+      });
+
+      const xhr = xhrInstances[0];
+
+      // Simulate network error
+      xhr.onerror?.();
+
+      await vi.waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Upload failed', {
+          description: 'Network error during upload',
         });
       });
     });

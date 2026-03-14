@@ -2,6 +2,7 @@
   import { Upload, Loader } from '@lucide/svelte';
   import { toast } from 'svelte-sonner';
   import { goto } from '$app/navigation';
+  import Progress from '$lib/components/ui/progress/progress.svelte';
 
   // Types for API responses
   interface UploadResponse {
@@ -20,10 +21,17 @@
     message?: string;
   }
 
+  // Upload phase type
+  type UploadPhase = 'idle' | 'uploading' | 'creating-job';
+
   // State
-  let isUploading = $state(false);
+  let uploadPhase = $state<UploadPhase>('idle');
+  let uploadProgress = $state(0);
   let isDragOver = $state(false);
   let inputRef: HTMLInputElement | undefined = $state();
+
+  // Derived state for backwards compatibility
+  const isUploading = $derived(uploadPhase !== 'idle');
 
   // Constants
   const PDF_MAGIC_BYTES = '%PDF-';
@@ -53,6 +61,53 @@
   }
 
   /**
+   * Upload file using XMLHttpRequest for progress tracking
+   */
+  function uploadWithProgress(file: File): Promise<UploadResponse> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Track upload progress
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          uploadProgress = Math.round((e.loaded / e.total) * 100);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            reject(new Error('Invalid response from server'));
+          }
+        } else {
+          // Try to parse error message
+          let message = getErrorMessage(xhr.status);
+          try {
+            const errorData = JSON.parse(xhr.responseText) as ApiError;
+            if (errorData.message) {
+              message = errorData.message;
+            }
+          } catch {
+            // Use default message
+          }
+          reject(new Error(message));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during upload'));
+      };
+
+      xhr.open('POST', '/api/upload');
+      xhr.send(formData);
+    });
+  }
+
+  /**
    * Handle file selection
    */
   async function handleFile(file: File): Promise<void> {
@@ -67,29 +122,16 @@
       return;
     }
 
-    isUploading = true;
+    uploadPhase = 'uploading';
+    uploadProgress = 0;
     isDragOver = false;
 
     try {
-      // Step 1: Upload PDF
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = (await uploadResponse.json().catch(() => ({}))) as ApiError;
-        const message = errorData.message || getErrorMessage(uploadResponse.status);
-        toast.error('Upload failed', { description: message });
-        return;
-      }
-
-      const uploadData = (await uploadResponse.json()) as UploadResponse;
+      // Step 1: Upload PDF with progress tracking
+      const uploadData = await uploadWithProgress(file);
 
       // Step 2: Create job
+      uploadPhase = 'creating-job';
       const jobResponse = await fetch('/api/job/create', {
         method: 'POST',
         headers: {
@@ -115,11 +157,13 @@
       await goto(`/editor/${jobData.jobId}`);
     } catch (err) {
       console.error('Upload error:', err);
-      toast.error('Something went wrong', {
-        description: 'Please try again later.',
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      toast.error('Upload failed', {
+        description: message,
       });
     } finally {
-      isUploading = false;
+      uploadPhase = 'idle';
+      uploadProgress = 0;
     }
   }
 
@@ -238,25 +282,38 @@
     ondrop={handleDrop}
     aria-disabled={isUploading}
   >
-    <div class="flex flex-col items-center gap-4">
+    <div class="flex flex-col items-center gap-4 w-full px-4">
       <div
         class="size-16 rounded-full bg-brand-100 flex items-center justify-center {isDragOver
           ? 'scale-110'
           : ''} transition-transform"
       >
-        {#if isUploading}
+        {#if uploadPhase === 'creating-job'}
           <Loader class="size-8 text-brand-600 animate-spin" />
+        {:else if uploadPhase === 'uploading'}
+          <Upload class="size-8 text-brand-600" />
         {:else}
           <Upload class="size-8 text-brand-600" />
         {/if}
       </div>
-      <div>
-        {#if isUploading}
-          <p class="text-lg font-medium mb-1">Uploading...</p>
-          <p class="text-sm text-muted-foreground">Please wait</p>
+      <div class="w-full max-w-sm">
+        {#if uploadPhase === 'uploading'}
+          <p class="text-lg font-medium mb-2 text-center">Uploading...</p>
+          <div class="flex items-center gap-3">
+            <Progress value={uploadProgress} class="flex-1 h-2" />
+            <span class="text-sm font-medium text-muted-foreground min-w-12 text-right"
+              >{uploadProgress}%</span
+            >
+          </div>
+        {:else if uploadPhase === 'creating-job'}
+          <p class="text-lg font-medium mb-1 text-center">Creating job...</p>
+          <div class="flex items-center gap-3">
+            <Progress value={100} class="flex-1 h-2" />
+            <span class="text-sm font-medium text-muted-foreground min-w-12 text-right">100%</span>
+          </div>
         {:else}
-          <p class="text-lg font-medium mb-1">Drop your PDF here</p>
-          <p class="text-sm text-muted-foreground">or click to browse</p>
+          <p class="text-lg font-medium mb-1 text-center">Drop your PDF here</p>
+          <p class="text-sm text-muted-foreground text-center">or click to browse</p>
         {/if}
       </div>
       <p class="text-xs text-muted-foreground">Max 50 pages • Free • No signup required</p>
