@@ -52,6 +52,7 @@ export default defineWorkersConfig(async () => {
     resolve: {
       alias: {
         $lib: path.resolve('./src/lib'),
+        $routes: path.resolve('./src/routes'),
       },
     },
   };

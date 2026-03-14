@@ -3,7 +3,7 @@
  * Used for direct route handler testing without HTTP stack
  */
 import type { D1Database, R2Bucket, KVNamespace, Queue } from '@cloudflare/workers-types';
-import type { RequestHandler } from '@sveltejs/kit';
+import type { RequestHandler, ServerLoadEvent } from '@sveltejs/kit';
 
 /**
  * User object type matching App.Locals['user']
@@ -67,6 +67,10 @@ export interface TestRequestEvent {
     traceId: string;
     spanId: string;
   };
+  // ServerLoadEvent methods
+  parent?: () => Promise<Record<string, unknown>>;
+  depends?: (...deps: string[]) => void;
+  untrack?: <T>(fn: () => T) => T;
 }
 
 /**
@@ -173,6 +177,12 @@ export function createRequestEvent(options: CreateRequestEventOptions): TestRequ
     isSubRequest: false,
     isRemoteRequest: false,
     fetch: globalThis.fetch.bind(globalThis),
+    // ServerLoadEvent methods for page server load functions
+    parent: async () => ({}),
+    depends: (...deps: string[]) => {
+      void deps; // No-op for tests
+    },
+    untrack: <T>(fn: () => T) => fn(),
   };
 }
 
@@ -194,6 +204,22 @@ export function toHandlerEvent<T extends RequestHandler>(
   event: TestRequestEvent
 ): Parameters<T>[0] {
   return event as unknown as Parameters<T>[0];
+}
+
+/**
+ * Casts a TestRequestEvent to a ServerLoadEvent's parameter type.
+ *
+ * Used for testing page server load functions which require a ServerLoadEvent
+ * (which has additional methods like parent, depends, untrack).
+ *
+ * @example
+ * ```ts
+ * const event = createRequestEvent({ ... });
+ * const result = await load(toServerLoadEvent(event));
+ * ```
+ */
+export function toServerLoadEvent<T extends ServerLoadEvent>(event: TestRequestEvent): T {
+  return event as unknown as T;
 }
 
 /**

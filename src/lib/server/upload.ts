@@ -121,8 +121,11 @@ export const handleUpload: RequestHandler = async ({ request, locals, platform }
   const filename = sanitizeFilename(file.name) || 'document.pdf';
 
   // 10. Store in R2
+  // Note: Re-read the file because pdfjs-serverless may have detached the ArrayBuffer
+  // during page count extraction. Using file.arrayBuffer() fresh ensures we have a valid buffer.
   try {
-    await platform!.env.R2.put(r2Key, arrayBuffer);
+    const r2Buffer = await file.arrayBuffer();
+    await platform!.env.R2.put(r2Key, r2Buffer);
   } catch (err) {
     console.error('Failed to store file in R2:', err);
     return error(500, 'Failed to store file');
