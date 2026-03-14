@@ -33,5 +33,9 @@
 				"queue": "cleanebook-jobs-local"
 			}
 		]
+	},
+	"vars": {
+		"R2_ACCOUNT_ID": "ad5e009ffc12ea689d5ad54043254f8a",
+		"R2_BUCKET_NAME": "cleanebook-files-local"
 	}
 }

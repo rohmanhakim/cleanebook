@@ -18,6 +18,11 @@ declare global {
         // Basic Auth (development gating - remove in production when ready)
         BASIC_AUTH_USER: string;
         BASIC_AUTH_PASSWORD: string;
+        // R2 S3-compatible API credentials (for presigned URLs)
+        R2_ACCOUNT_ID: string;
+        R2_ACCESS_KEY_ID: string;
+        R2_SECRET_ACCESS_KEY: string;
+        R2_BUCKET_NAME: string;
       };
       context: ExecutionContext;
       caches: CacheStorage & { default: Cache };
