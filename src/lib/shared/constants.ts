@@ -45,3 +45,6 @@ export const MAX_REVIEW_PAGES_AUTO_SKIP = 5; // if ≤ this many review pages, a
 // OCR model defaults
 export const DEFAULT_OCR_MODEL = 'lightonai/LightOnOCR-2-1B';
 export const DEFAULT_LAYOUT_MODEL = 'microsoft/layoutlmv3-base';
+
+// PDF presigned URL configuration
+export const PDF_PRESIGNED_URL_EXPIRY_SECONDS = 24 * 60 * 60; // 24 hours (configurable)

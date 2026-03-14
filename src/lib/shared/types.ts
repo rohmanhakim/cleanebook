@@ -109,3 +109,18 @@ export interface OAuthAccount {
   providerUserId: string;
   userId: string;
 }
+
+// PDF viewer state
+export interface PdfViewerState {
+  isLoading: boolean;
+  error: string | null;
+  currentPage: number;
+  totalPages: number;
+  scale: number;
+}
+
+// Presigned URL response
+export interface PresignedUrlResponse {
+  url: string;
+  expiresAt: string; // ISO datetime
+}
