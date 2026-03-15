@@ -1,10 +1,11 @@
 <!--
-Document Version: 1.4.0
-Last Updated: 2026-03-14
+Document Version: 1.5.0
+Last Updated: 2026-03-15
 Source Commits:
   - 362da1d5753cfcff338f6e8bd15e5c54394cb584 (Task 1D - Database Helpers)
   - Task 1E - Upload API (three-layer testing architecture)
   - Phase 001 completion (Anonymous User Upload Flow)
+  - E2E testing strategy update (chromium-only, upload flow moved to integration)
 Changes:
   - Added three-layer testing architecture (Unit → Handler → E2E)
   - Added handler tests section
@@ -12,6 +13,8 @@ Changes:
   - Added note about avoiding SELF.fetch()
   - Added handler test files to directory structure
   - Added test fixtures documentation
+  - Updated E2E tests to chromium-only for CI speed
+  - Moved upload flow tests from E2E to integration tests
 -->
 # CleanEbook — Testing Infrastructure
 
@@ -478,25 +481,109 @@ declare module 'cloudflare:test' {
 ### E2E Test Example
 
 ```typescript
-// tests/e2e/auth.spec.ts
+// tests/e2e/landing.spec.ts
 import { test, expect } from '@playwright/test';
 
-test.describe('Authentication', () => {
-	test('should show login form', async ({ page }) => {
-		await page.goto('/login');
-		await expect(page.locator('input[type="email"]')).toBeVisible();
-		await expect(page.locator('input[type="password"]')).toBeVisible();
-	});
+test.describe('Landing page', () => {
+  test.use({
+    httpCredentials: {
+      username: 'admin',
+      password: 'qwerty123',
+    },
+  });
 
-	test('should redirect to dashboard after login', async ({ page }) => {
-		await page.goto('/login');
-		await page.fill('input[type="email"]', 'test@example.com');
-		await page.fill('input[type="password"]', 'password123');
-		await page.click('button[type="submit"]');
-		await expect(page).toHaveURL('/dashboard');
-	});
+  test('should display the hero section', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('h1')).toContainText('PDFs that actually read well');
+  });
+
+  test('should display upload drop zone', async ({ page }) => {
+    await page.goto('/');
+    const dropzone = page.getByTestId('upload-dropzone');
+    await expect(dropzone).toBeVisible();
+  });
 });
 ```
+
+## E2E Testing Strategy
+
+### Chromium-Only Configuration
+
+E2E tests run on **chromium only** (not firefox/webkit) for CI speed and reliability:
+
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // Firefox and WebKit disabled for CI speed.
+    // Cross-browser testing can be re-enabled when needed.
+  ],
+});
+```
+
+**Rationale:**
+- Most users are on Chromium-based browsers (Chrome, Edge, Brave)
+- CI runs faster with 1 browser instead of 3
+- Reduces flaky test surface area
+- Cross-browser issues are rare for this application
+
+### E2E Scope: UI Rendering Only
+
+E2E tests focus on **UI rendering and navigation**, not business logic:
+
+| Test Type | What it Covers |
+|-----------|----------------|
+| **E2E Tests** | Page renders, elements visible, navigation works |
+| **Integration Tests** | Upload flow, API endpoints, database operations |
+| **Handler Tests** | Individual API route logic |
+
+**Upload flow is tested in integration tests** (`tests/integration/upload.test.ts`), not E2E. This is because:
+
+1. `setInputFiles()` on hidden inputs doesn't trigger Svelte's `onchange` handler reliably
+2. Upload tests require server-side bindings (D1, R2) which are better tested with Workers pool
+3. Integration tests run faster and are less flaky than browser-based upload tests
+
+### Using `data-testid` for Reliable Selectors
+
+Components should include `data-testid` attributes for reliable test targeting:
+
+```svelte
+<!-- src/lib/components/marketing/upload-dropzone.svelte -->
+<div
+  role="button"
+  tabindex="0"
+  data-testid="upload-dropzone"
+  class="..."
+>
+  <!-- ... -->
+</div>
+```
+
+Then in tests:
+
+```typescript
+const dropzone = page.getByTestId('upload-dropzone');
+await expect(dropzone).toBeVisible();
+```
+
+### HTTP Basic Auth for Development Gating
+
+E2E tests use HTTP Basic Auth to bypass development gating:
+
+```typescript
+test.use({
+  httpCredentials: {
+    username: process.env.BASIC_AUTH_USER || 'admin',
+    password: process.env.BASIC_AUTH_PASSWORD || 'qwerty123',
+  },
+});
+```
+
+Credentials should match the values in `.dev.vars`.
 
 ## CI/CD Integration
 

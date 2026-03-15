@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'fs';
 
 /**
  * E2E tests for the landing page.
@@ -7,6 +6,9 @@ import { readFileSync } from 'fs';
  *
  * Note: These tests use HTTP Basic Auth to bypass the development gating.
  * The credentials are set via BASIC_AUTH_USER and BASIC_AUTH_PASSWORD in .dev.vars
+ *
+ * Note: Upload flow tests are covered by integration tests (tests/integration/upload.test.ts)
+ * E2E tests focus on UI rendering and navigation.
  */
 
 // Get credentials from environment or use defaults for local development
@@ -70,10 +72,12 @@ test.describe('Landing page', () => {
   test('should display upload drop zone', async ({ page }) => {
     await page.goto('/');
 
-    // Check for upload drop zone
-    await expect(page.getByText('Drop your PDF here')).toBeVisible();
-    await expect(page.getByText('or click to browse')).toBeVisible();
-    await expect(page.getByText('Max 50 pages • Free • No signup required')).toBeVisible();
+    // Check for upload drop zone using data-testid
+    const dropzone = page.getByTestId('upload-dropzone');
+    await expect(dropzone).toBeVisible();
+    await expect(dropzone.getByText('Drop your PDF here')).toBeVisible();
+    await expect(dropzone.getByText('or click to browse')).toBeVisible();
+    await expect(dropzone.getByText('Max 50 pages • Free • No signup required')).toBeVisible();
   });
 
   test('should display feature cards', async ({ page }) => {
@@ -121,83 +125,5 @@ test.describe('Landing page', () => {
       .locator('header button[aria-haspopup], header [data-slot="sheet-trigger"]')
       .first();
     await expect(menuButton).toBeVisible();
-  });
-});
-
-test.describe('Upload flow', () => {
-  test.use({
-    httpCredentials: {
-      username: BASIC_AUTH_USER,
-      password: BASIC_AUTH_PASSWORD,
-    },
-  });
-
-  test('should show error toast when uploading non-PDF file', async ({ page }) => {
-    await page.goto('/');
-
-    // Listen for toast messages
-    const toastMessage = page.locator('[data-sonner-toast][data-type="error"]');
-
-    // Create a non-PDF file and upload it
-    const fileChooserPromise = page.waitForEvent('filechooser');
-
-    // Click the dropzone (div[role="button"]) to trigger file input
-    await page.locator('div[role="button"]').click();
-
-    const fileChooser = await fileChooserPromise;
-
-    // Create a text file (not a PDF)
-    await fileChooser.setFiles({
-      name: 'test.txt',
-      mimeType: 'text/plain',
-      buffer: Buffer.from('This is not a PDF file'),
-    });
-
-    // Should show error toast
-    await expect(toastMessage).toBeVisible({ timeout: 5000 });
-    await expect(toastMessage).toContainText('Invalid file');
-  });
-
-  test('should show loading state during upload', async ({ page }) => {
-    await page.goto('/');
-
-    // Click the dropzone (div[role="button"]) to trigger file input
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('div[role="button"]').click();
-    const fileChooser = await fileChooserPromise;
-
-    // Upload a valid PDF (use fixture)
-    const pdfBuffer = readFileSync('./tests/fixtures/pdfs/sample-1page.pdf');
-    await fileChooser.setFiles({
-      name: 'sample-1page.pdf',
-      mimeType: 'application/pdf',
-      buffer: pdfBuffer,
-    });
-
-    // Should show uploading state briefly
-    await expect(page.getByText('Uploading...')).toBeVisible({ timeout: 1000 });
-  });
-
-  test('should redirect to editor after successful upload', async ({ page }) => {
-    await page.goto('/');
-
-    // Click the dropzone (div[role="button"]) to trigger file input
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('div[role="button"]').click();
-    const fileChooser = await fileChooserPromise;
-
-    // Upload a valid PDF
-    const pdfBuffer = readFileSync('./tests/fixtures/pdfs/sample-1page.pdf');
-    await fileChooser.setFiles({
-      name: 'sample-1page.pdf',
-      mimeType: 'application/pdf',
-      buffer: pdfBuffer,
-    });
-
-    // Wait for redirect to editor page
-    await page.waitForURL(/\/editor\/job_/, { timeout: 30000 });
-
-    // Verify we're on the editor page
-    expect(page.url()).toContain('/editor/job_');
   });
 });

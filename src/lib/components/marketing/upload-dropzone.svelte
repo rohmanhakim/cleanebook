@@ -270,6 +270,7 @@
   <div
     role="button"
     tabindex="0"
+    data-testid="upload-dropzone"
     class="border-2 border-dashed rounded-xl p-12 text-center transition-colors w-full cursor-pointer
       {isDragOver
       ? 'border-brand-500 bg-brand-50'
