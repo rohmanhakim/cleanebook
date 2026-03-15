@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import EditorTopBar from '$lib/components/app/editor-top-bar.svelte';
   import PdfViewer from '$lib/components/app/pdf-viewer.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import type { PresignedUrlResponse } from '$lib/shared/types';
@@ -63,24 +64,7 @@
 
 <div class="min-h-screen bg-muted/30">
   <!-- Top Bar -->
-  <header class="fixed top-0 left-0 right-0 h-14 bg-background border-b z-50">
-    <div class="h-full px-4 flex items-center justify-between">
-      <!-- Logo -->
-      <a href="/" class="font-semibold text-lg hover:opacity-80 transition-opacity"> CleanEbook </a>
-
-      <!-- Filename (centered) -->
-      <div class="absolute left-1/2 -translate-x-1/2 max-w-[40%]">
-        <span class="text-sm text-muted-foreground truncate block text-center">
-          {data.job.pdfFilename}
-        </span>
-      </div>
-
-      <!-- Sign In placeholder -->
-      <button class="text-sm text-muted-foreground hover:text-foreground transition-colors">
-        Sign In
-      </button>
-    </div>
-  </header>
+  <EditorTopBar filename={data.job.pdfFilename} />
 
   <!-- Main content with top bar offset -->
   <div class="pt-14 flex h-screen">

@@ -43,11 +43,12 @@
       if (!context) return;
 
       // Render the page
+      // Note: pdfjs-dist v4.x types require 'canvas' property
       await currentPage.render({
         canvasContext: context,
         viewport,
         canvas: currentCanvas,
-      }).promise;
+      } as Parameters<typeof currentPage.render>[0]).promise;
 
       isRendered = true;
     };
