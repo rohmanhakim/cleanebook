@@ -15,8 +15,9 @@ Configured CORS policy on the `cleanebook-files` R2 bucket to allow browsers to 
 [
   {
     "AllowedOrigins": [
-      "https://cleanebook.app",
-      "http://localhost:5173"
+      "https://*.cleanebook.pages.dev",
+      "http://localhost:5173",
+      "http://localhost:5174"
     ],
     "AllowedMethods": [
       "GET",
@@ -55,8 +56,11 @@ Unlike other R2 settings, CORS policy cannot be defined in `wrangler.dev.jsonc` 
 
 | Origin | Purpose |
 |--------|---------|
-| `https://cleanebook.app` | Production domain |
-| `http://localhost:5173` | Local development (Vite dev server) |
+| `https://*.cleanebook.pages.dev` | Production and preview deployments (Cloudflare Pages) |
+| `http://localhost:5173` | Local development (Vite dev server, default port) |
+| `http://localhost:5174` | Local development (Vite dev server, alternate port) |
+
+**Note:** The wildcard `https://*.cleanebook.pages.dev` covers both production (`cleanebook.pages.dev`) and preview deployments (e.g., `abc123.cleanebook.pages.dev`). This is the recommended approach for Cloudflare Pages projects.
 
 ### 4. Why CORS is Needed
 
@@ -71,7 +75,11 @@ This is a different origin than the app, so CORS is required.
 
 ### 5. Local Development Note
 
-For local development with `wrangler dev`, the local R2 bucket may not enforce CORS the same way as production. However, the CORS policy should still be configured for consistency.
+For local development with `wrangler dev`, the local R2 bucket (miniflare) doesn't have an S3-compatible endpoint accessible from browsers. Therefore, presigned URLs won't work for local development.
+
+**Solution:** Use a proxy endpoint instead of presigned URLs for local development. See `docs/learnings/2026-03-14/07-phase-002-task-2g-pdf-viewer-components.md` for details on the proxy approach.
+
+The signed-url endpoint detects local development by checking if the bucket name ends with `-local` and returns a proxy URL instead of a presigned URL.
 
 ---
 

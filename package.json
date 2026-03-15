@@ -76,7 +76,7 @@
     "konva": "^10.2.0",
     "nanoid": "^5.0.7",
     "paneforge": "^1.0.2",
-    "pdfjs-dist": "^5.5.207",
+    "pdfjs-dist": "^4.10.38",
     "pdfjs-serverless": "^1.1.0",
     "svelte-konva": "^1.0.1",
     "svelte-media-query-store": "^1.0.0",

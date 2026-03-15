@@ -73,7 +73,7 @@ Do NOT upgrade versions without re-verifying. Do NOT use versions not listed her
     "konva": "^10.2.0",
     "nanoid": "^5.0.7",
     "paneforge": "^1.0.2",
-    "pdfjs-dist": "^5.5.207",
+    "pdfjs-dist": "^4.10.38",
     "pdfjs-serverless": "^1.1.0",
     "svelte-konva": "^1.0.1",
     "svelte-media-query-store": "^1.0.0",
@@ -104,9 +104,21 @@ manually using `@oslojs/crypto` and `@oslojs/encoding`. See `AUTH.md`.
 - `@oslojs/crypto` — password hashing, HMAC, random bytes
 - `@oslojs/encoding` — base64url, hex encoding
 
-### pdfjs-dist — CLIENT SIDE ONLY
+### pdfjs-dist — CLIENT SIDE ONLY, v4.x REQUIRED
 Never import `pdfjs-dist` in a `+server.js` file or any Worker-side code.
 For server-side PDF processing (future), use `pdfjs-serverless` instead.
+
+**CRITICAL:** Use v4.x, NOT v5.x. pdfjs-dist v5.x uses ES2024 features
+(`Map.prototype.getOrInsertComputed`) that are not supported in Cloudflare
+Workers runtime. v4.10.38 is the latest compatible version for edge runtimes.
+
+**When can you upgrade to v5.x?** Monitor these:
+1. Cloudflare Workers Changelog for V8 engine updates (needs V8 v12.4+)
+2. MDN compatibility table for `Map.prototype.getOrInsertComputed` support
+3. pdfjs-dist GitHub issues for ES2024 compatibility discussions
+4. Test by deploying to preview environment before upgrading
+
+Estimated timeline: 6-12 months for ES2024 support in Workers runtime.
 
 ### @sveltejs/adapter-cloudflare-workers — DO NOT INSTALL
 This package is deprecated. The correct adapter is `@sveltejs/adapter-cloudflare`.
