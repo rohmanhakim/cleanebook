@@ -82,6 +82,50 @@ Create a conversion job and enqueue it.
 
 ---
 
+## GET /api/pdf/[jobId]/signed-url
+
+Get a presigned URL to access the PDF file from R2.
+
+**Auth:** Required (user must own the job)
+
+**Response:**
+```typescript
+{
+  url: string;       // Presigned R2 URL (or proxy URL for local dev)
+  expiresAt: string; // ISO datetime (only for presigned URLs)
+  expiresIn: number; // Seconds until expiration (86400 = 24 hours)
+}
+```
+
+**Errors:**
+- `401` — not authenticated
+- `404` — job not found or not owned by user
+- `500` — database or R2 not available
+
+**Implementation notes:**
+- For local development (bucket name ends with `-local`), returns proxy URL `/api/pdf/[jobId]/file`
+- For production, generates presigned URL using AWS SDK S3 client
+- Presigned URLs are valid for 24 hours
+
+---
+
+## GET /api/pdf/[jobId]/file
+
+Proxy endpoint to serve PDF file directly from R2 binding. Used for local development where presigned URLs don't work (local R2 has no S3-compatible endpoint).
+
+**Auth:** Required (user must own the job)
+
+**Response:** PDF file blob with headers:
+- `Content-Type: application/pdf`
+- `Content-Disposition: inline; filename="<pdfFilename>"`
+
+**Errors:**
+- `401` — not authenticated
+- `404` — job not found, not owned by user, or file not in R2
+- `500` — database or R2 not available
+
+---
+
 ## GET /api/job/[id]
 
 Poll job status. Called every 3 seconds by TanStack Query on the editor page.

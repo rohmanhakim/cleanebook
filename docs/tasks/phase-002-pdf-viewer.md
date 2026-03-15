@@ -682,15 +682,35 @@ The updated page integrates all components. Presigned URL is fetched client-side
 
 ### Tasks
 
-- [ ] Copy `pdf.worker.min.js` from `pdfjs-dist` package to `static/`:
-  - Source: `node_modules/pdfjs-dist/build/pdf.worker.min.mjs`
-  - Destination: `static/pdf.worker.min.mjs`
-- [ ] Or configure Vite to bundle the worker correctly
-- [ ] Document the approach in task notes
+- [x] ~~Copy `pdf.worker.min.js` from `pdfjs-dist` package to `static/`~~ **NOT NEEDED**
+- [x] Or configure Vite to bundle the worker correctly
+- [x] Document the approach in task notes
 
 ### Rationale
 
 pdfjs-dist requires a web worker for PDF parsing. The worker file must be served statically and referenced correctly in the PDF viewer configuration.
+
+### Implementation Notes
+
+**Decision: Use Vite-bundled worker instead of static file.**
+
+The PDF viewer uses Vite's module resolution to bundle the worker:
+
+```typescript
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).href;
+```
+
+**Advantages of Vite approach:**
+1. Automatic bundling - Vite handles the worker as a module asset
+2. Hashed filenames - Better cache invalidation on updates
+3. No manual maintenance - No need to copy files during builds/updates
+4. Version consistency - Worker version always matches pdfjs-dist version
+5. Works in both local and Cloudflare preview environments
+
+**Tested:** PDF renders correctly in both local dev and Cloudflare preview.
 
 ---
 
@@ -698,16 +718,16 @@ pdfjs-dist requires a web worker for PDF parsing. The worker file must be served
 
 After implementation, verify:
 
-- [ ] Desktop layout renders with resizable panels
-- [ ] PDF loads and displays all pages vertically
-- [ ] Presigned URL is generated correctly
-- [ ] PDF downloads directly from R2 (check Network tab)
-- [ ] CORS headers present on R2 responses
-- [ ] Top bar shows correct filename
-- [ ] Metadata panel shows correct job info
-- [ ] Mobile shows placeholder message
-- [ ] Error states handled gracefully
-- [ ] No server-side import of pdfjs-dist
+- [x] Desktop layout renders with resizable panels
+- [x] PDF loads and displays all pages vertically
+- [x] Presigned URL is generated correctly
+- [x] PDF downloads directly from R2 (check Network tab)
+- [x] CORS headers present on R2 responses
+- [x] Top bar shows correct filename
+- [x] Metadata panel shows correct job info
+- [x] Mobile shows placeholder message
+- [x] Error states handled gracefully
+- [x] No server-side import of pdfjs-dist
 
 ---
 

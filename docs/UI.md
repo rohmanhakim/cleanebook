@@ -48,7 +48,23 @@
 
 `/editor/:jobId` is the most complex page. It has distinct phases:
 
-### Phase 1: Template Selection
+### Current State (Phase 002 Complete)
+
+**Implemented:**
+- PDF viewer with vertical scrolling and lazy loading
+- Fixed top bar (logo, filename, sign in button)
+- Resizable panel layout (PDF viewer left, metadata panel right)
+- Job metadata display (filename, page count, status, upload date)
+- Desktop-first design with mobile placeholder
+
+**Not Yet Implemented:**
+- Template selection
+- Region editor (Konva.js)
+- EPUB preview
+- Pipeline status display
+- Exception queue
+
+### Phase 1: Template Selection (Not Yet Implemented)
 - Show saved templates
 - Option to start fresh (define new rules)
 - "Auto-detect" option (skips editor, goes straight to pipeline — for simple uniform books)

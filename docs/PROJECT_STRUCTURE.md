@@ -28,8 +28,8 @@ cleanebook/
 │   │   │   ├── upload.ts           # File upload handling with pdfjs-serverless
 │   │   │   ├── job.ts              # Job creation and queue management
 │   │   │   ├── job-status.ts       # Job status queries and updates
+│   │   │   ├── r2.ts               # R2 client and presigned URL helpers
 │   │   │   # Future files (not yet implemented):
-│   │   │   # r2.ts                 # R2 upload/download helpers
 │   │   │   # queue.ts              # Queue message helpers
 │   │   │   # hf.ts                 # HuggingFace Inference API client
 │   │   │   # polar.ts              # Polar billing client + helpers
@@ -51,6 +51,7 @@ cleanebook/
 │   │   │   │   ├── regions.ts      # Region draw/edit/label logic
 │   │   │   │   └── matcher.ts      # Client-side preview of heuristic matching
 │   │   │   └── stores/
+│   │   │       ├── media-query.ts  # Reactive media query utility (desktop/mobile detection)
 │   │   │       ├── job.ts          # Active job state store
 │   │   │       ├── editor.ts       # Editor UI state store
 │   │   │       └── upload.ts       # Upload progress store
@@ -63,14 +64,19 @@ cleanebook/
 │   │       │   ├── Features.svelte
 │   │       │   └── Pricing.svelte
 │   │       ├── app/                # App-specific components
-│   │       │   ├── PDFViewer.svelte        # Renders PDF pages via PDF.js
-│   │       │   ├── RegionEditor.svelte     # Konva canvas region drawing
-│   │       │   ├── RegionLabel.svelte      # Label picker (chrome/content/etc)
-│   │       │   ├── TemplateRules.svelte    # View/edit saved template rules
-│   │       │   ├── JobStatusBar.svelte     # Pipeline progress display
-│   │       │   ├── ExceptionQueue.svelte   # Pages needing review
-│   │       │   ├── EpubPreview.svelte      # Live structured text preview
-│   │       │   └── ConfidenceChip.svelte   # Shows match confidence per page
+│   │       │   ├── editor-layout.svelte    # Resizable panel layout (PDF viewer + metadata)
+│   │       │   ├── editor-top-bar.svelte   # Fixed top bar (logo, filename, sign in)
+│   │       │   ├── metadata-panel.svelte   # Job metadata display (filename, pages, status)
+│   │       │   ├── pdf-viewer.svelte       # PDF viewer with vertical scrolling and lazy loading
+│   │       │   ├── pdf-page-canvas.svelte  # Single PDF page canvas renderer
+│   │       │   # Future components (Phase 003+):
+│   │       │   # RegionEditor.svelte       # Konva canvas region drawing
+│   │       │   # RegionLabel.svelte        # Label picker (chrome/content/etc)
+│   │       │   # TemplateRules.svelte      # View/edit saved template rules
+│   │       │   # JobStatusBar.svelte       # Pipeline progress display
+│   │       │   # ExceptionQueue.svelte     # Pages needing review
+│   │       │   # EpubPreview.svelte        # Live structured text preview
+│   │       │   # ConfidenceChip.svelte     # Shows match confidence per page
 │   │       └── admin/
 │   │           ├── UsersTable.svelte
 │   │           ├── JobsTable.svelte
@@ -142,6 +148,12 @@ cleanebook/
 │           │       │   └── +server.ts  # POST — confirm review pages, resume workflow
 │           │       └── epub/
 │           │           └── +server.ts  # GET — R2 presigned download URL
+│           ├── pdf/
+│           │   └── [jobId]/
+│           │       ├── signed-url/
+│           │       │   └── +server.ts  # GET — presigned URL for PDF access
+│           │       └── file/
+│           │           └── +server.ts  # GET — proxy PDF from R2 (local dev)
 │           ├── template/
 │           │   ├── +server.ts          # POST — create template
 │           │   └── [id]/
