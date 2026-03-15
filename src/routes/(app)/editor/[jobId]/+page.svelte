@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import EditorTopBar from '$lib/components/app/editor-top-bar.svelte';
+  import EditorLayout from '$lib/components/app/editor-layout.svelte';
   import MetadataPanel from '$lib/components/app/metadata-panel.svelte';
   import PdfViewer from '$lib/components/app/pdf-viewer.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -47,49 +48,53 @@
   <title>Editor — {data.job.pdfFilename}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-muted/30">
+<div class="h-screen bg-muted/30">
   <!-- Top Bar -->
   <EditorTopBar filename={data.job.pdfFilename} />
 
-  <!-- Main content with top bar offset -->
-  <div class="pt-14 flex h-screen">
-    <!-- PDF Viewer (left panel) -->
-    <div class="flex-1 overflow-auto p-4">
-      {#if isLoadingUrl}
-        <div class="space-y-4">
-          {#each Array.from({ length: 5 }, (_, i) => i) as i (i)}
-            <Skeleton class="h-100 w-full" />
-          {/each}
+  <!-- Main content with resizable layout (offset for fixed top bar) -->
+  <div class="pt-14 h-full">
+    <EditorLayout>
+      {#snippet viewer()}
+        <div class="h-full overflow-auto bg-muted/30 p-4">
+          {#if isLoadingUrl}
+            <div class="space-y-4">
+              {#each Array.from({ length: 5 }, (_, i) => i) as i (i)}
+                <Skeleton class="h-100 w-full" />
+              {/each}
+            </div>
+          {:else if urlError}
+            <div class="flex flex-col items-center justify-center h-full text-center">
+              <div class="text-red-500 mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-12 w-12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-red-500 mb-2">Failed to load PDF</h3>
+              <p class="text-muted-foreground">{urlError}</p>
+            </div>
+          {:else if presignedUrl}
+            <PdfViewer {presignedUrl} />
+          {/if}
         </div>
-      {:else if urlError}
-        <div class="flex flex-col items-center justify-center h-full text-center">
-          <div class="text-red-500 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-12 w-12"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-red-500 mb-2">Failed to load PDF</h3>
-          <p class="text-muted-foreground">{urlError}</p>
-        </div>
-      {:else if presignedUrl}
-        <PdfViewer {presignedUrl} />
-      {/if}
-    </div>
+      {/snippet}
 
-    <!-- Metadata Panel (right panel) -->
-    <div class="w-80 border-l bg-background overflow-auto">
-      <MetadataPanel job={data.job} />
-    </div>
+      {#snippet metadataPanel()}
+        <div class="h-full overflow-auto bg-background border-l">
+          <MetadataPanel job={data.job} />
+        </div>
+      {/snippet}
+    </EditorLayout>
   </div>
 </div>
