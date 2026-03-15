@@ -59,9 +59,6 @@ importers:
       svelte-konva:
         specifier: ^1.0.1
         version: 1.0.1(konva@10.2.0)(svelte@5.53.10)
-      svelte-media-query-store:
-        specifier: ^1.0.0
-        version: 1.0.0
       svelte-sonner:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.53.10)
@@ -3618,12 +3615,6 @@ packages:
     peerDependencies:
       konva: 8 - 10
       svelte: ^5.0.0
-
-  svelte-media-query-store@0.0.3:
-    resolution: {integrity: sha512-LxM2AEyE4BqVHNdEb8aZOwcSf5oyJcZWSRlSkQPxnQyp6ytGwQs3gsmaZ1udEBeL7jHldWwNrbaFwAG5W7eTXw==}
-
-  svelte-media-query-store@1.0.0:
-    resolution: {integrity: sha512-Mm7Aq04xrdW9XVA7jjR8nPvYdWf3oAz5QJYvwAno/wKgLbbjA5E1nfCvOu1dG85UhvM62u5Q/lfQI2ByKU37rg==}
 
   svelte-sonner@1.1.0:
     resolution: {integrity: sha512-3lYM6ZIqWe+p9vwwWHGWP/ZdvHiUtzURsud2quIxivrX4rvpXh6i+geBGn0m3JS6KwW6W8VgbOl3xQMcDuh6gg==}
@@ -7623,12 +7614,6 @@ snapshots:
     dependencies:
       konva: 10.2.0
       svelte: 5.53.10
-
-  svelte-media-query-store@0.0.3: {}
-
-  svelte-media-query-store@1.0.0:
-    dependencies:
-      svelte-media-query-store: 0.0.3
 
   svelte-sonner@1.1.0(svelte@5.53.10):
     dependencies:

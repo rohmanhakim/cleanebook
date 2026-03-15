@@ -597,12 +597,12 @@ Resizable panels let users customize their workspace. The desktop-first approach
 
 ### Tasks
 
-- [ ] Update `+page.server.ts` to pass all needed job data
-- [ ] Update `+page.svelte` to use new layout:
+- [x] Update `+page.server.ts` to pass all needed job data
+- [x] Update `+page.svelte` to use new layout:
   - Top bar (fixed)
   - Resizable PDF viewer + metadata panel
   - Fetch presigned URL on client-side mount
-- [ ] Handle loading and error states for presigned URL fetch
+- [x] Handle loading and error states for presigned URL fetch
 
 ### Implementation Sketch
 

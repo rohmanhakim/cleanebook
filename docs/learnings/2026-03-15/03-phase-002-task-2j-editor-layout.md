@@ -8,7 +8,8 @@
 ## What Was Done
 
 1. Created `src/lib/components/app/editor-layout.svelte` - Resizable layout component
-2. Updated `src/routes/(app)/editor/[jobId]/+page.svelte` - Integrated the new layout
+2. Created `src/lib/client/stores/media-query.ts` - Custom media query store
+3. Updated `src/routes/(app)/editor/[jobId]/+page.svelte` - Integrated the new layout
 
 ---
 
@@ -17,27 +18,86 @@
 | File | Action |
 |------|--------|
 | `src/lib/components/app/editor-layout.svelte` | Created |
+| `src/lib/client/stores/media-query.ts` | Created |
 | `src/routes/(app)/editor/[jobId]/+page.svelte` | Updated |
 
 ---
 
 ## Key Learnings
 
-### 1. svelte-media-query-store Usage
+### 1. $state Must Be Used at Component Top Level
 
-The `svelte-media-query-store` package exports `mediaQueryStore`, not `createMediaStore`:
+**Problem:** Using `$state` inside a utility function doesn't work:
 
 ```typescript
-import { mediaQueryStore } from 'svelte-media-query-store';
-import { browser } from '$app/environment';
-
-// Must check for browser since the store uses window.matchMedia
-const isDesktop = browser ? mediaQueryStore('(min-width: 768px)') : null;
+// ❌ This doesn't work - $state inside a function
+export function createMediaQuery(query: string) {
+  let matches = $state(false);  // Not reactive outside component!
+  ...
+}
 ```
 
-**Important:** The store requires `window.matchMedia`, so it must be guarded with `browser` check to avoid SSR errors.
+**Why:** Svelte 5's `$state` rune must be at the top level of a component to properly tie into the component's reactivity context. When used inside a function, it doesn't connect to any component's reactivity graph.
 
-### 2. Paneforge Resizable Panels
+### 2. Use `writable` Store for Cross-Component Reactivity
+
+**Solution:** Use Svelte's classic `writable` store which works anywhere:
+
+```typescript
+import { writable, type Readable } from 'svelte/store';
+import { browser } from '$app/environment';
+
+export function createMediaQuery(query: string): Readable<boolean> {
+  const { subscribe, set } = writable(false);
+
+  if (browser) {
+    const mql = window.matchMedia(query);
+    set(mql.matches);
+
+    mql.addEventListener('change', (e) => {
+      set(e.matches);
+    });
+  }
+
+  return { subscribe };
+}
+```
+
+**Usage in component:**
+
+```svelte
+<script>
+  import { createMediaQuery } from '$lib/client/stores/media-query';
+
+  const isDesktop = createMediaQuery('(min-width: 768px)');
+</script>
+
+{#if $isDesktop}
+  <!-- Desktop content -->
+{:else}
+  <!-- Mobile content -->
+{/if}
+```
+
+**Key points:**
+- `writable` is Svelte's core reactivity primitive
+- Use `$` prefix to auto-subscribe to the store
+- Works in any context, not just components
+- Always check `browser` before accessing `window.matchMedia`
+
+### 3. svelte-media-query-store Package Issues
+
+The `svelte-media-query-store` package has module resolution issues:
+
+```
+Cannot find module '.../svelte-media-query-store/mediaQueryStore'
+```
+
+The package's `index.js` imports `./mediaQueryStore` without the `.js` extension, which fails with ESM module resolution.
+
+**Lesson:** Avoid packages with ESM compatibility issues. Creating a simple utility is often more reliable.
+
+### 4. Paneforge Resizable Panels
 
 The shadcn-svelte Resizable component uses `paneforge` under the hood:
 
@@ -62,7 +122,7 @@ The shadcn-svelte Resizable component uses `paneforge` under the hood:
 - `defaultSize`: Initial size in percentage
 - `minSize`: Minimum size in percentage (prevents collapse)
 
-### 3. ESLint Rule: no-useless-children-snippet
+### 5. ESLint Rule: no-useless-children-snippet
 
 ESLint complains if you name a snippet `children` because Svelte 5 has a special implicit `children` snippet:
 
@@ -84,22 +144,7 @@ error  Found an unnecessary children snippet  svelte/no-useless-children-snippet
 {/snippet}
 ```
 
-### 4. Snippet Props in Svelte 5
-
-When defining a component that accepts snippets as props:
-
-```typescript
-interface Props {
-  viewer: import('svelte').Snippet;
-  metadataPanel: import('svelte').Snippet;
-}
-
-let { viewer, metadataPanel }: Props = $props();
-```
-
-Then render them with `{@render viewer()}` and `{@render metadataPanel()}`.
-
-### 5. Height Calculation with Fixed Top Bar
+### 6. Height Calculation with Fixed Top Bar
 
 When you have a fixed top bar (`h-14` = 3.5rem), the content area needs to account for it:
 
@@ -129,12 +174,27 @@ The `EditorLayout` component uses `h-[calc(100vh-3.5rem)]` to fill the remaining
 
 **Features:**
 - Resizable horizontal panels (70/30 split by default)
-- Desktop detection via media query
+- Desktop detection via custom media query store
 - Mobile placeholder message
 
 **Styling:**
 - Uses `h-[calc(100vh-3.5rem)]` to fill remaining viewport
 - Pane sizes: left 70% (min 40%), right 30% (min 20%)
+
+### createMediaQuery
+
+**Responsibility:** Provide reactive media query matching
+
+**Parameters:**
+- `query: string` - CSS media query string (e.g., '(min-width: 768px)')
+
+**Returns:**
+- `Readable<boolean>` - A Svelte store containing `true` if the query matches
+
+**Features:**
+- Returns `false` during SSR (no `window` available)
+- Updates reactively when viewport changes
+- Uses `window.matchMedia` for efficient change detection
 
 ---
 

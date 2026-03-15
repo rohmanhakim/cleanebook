@@ -1,7 +1,6 @@
 <script lang="ts">
   import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable';
-  import { mediaQueryStore } from 'svelte-media-query-store';
-  import { browser } from '$app/environment';
+  import { createMediaQuery } from '$lib/client/stores/media-query';
 
   interface Props {
     viewer: import('svelte').Snippet;
@@ -11,8 +10,7 @@
   let { viewer, metadataPanel }: Props = $props();
 
   // Desktop detection (768px = md breakpoint)
-  // Returns true on desktop, false on mobile, null during SSR
-  const isDesktop = browser ? mediaQueryStore('(min-width: 768px)') : null;
+  const isDesktop = createMediaQuery('(min-width: 768px)');
 </script>
 
 {#if $isDesktop}

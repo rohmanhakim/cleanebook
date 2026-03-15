@@ -79,7 +79,6 @@
     "pdfjs-dist": "^4.10.38",
     "pdfjs-serverless": "^1.1.0",
     "svelte-konva": "^1.0.1",
-    "svelte-media-query-store": "^1.0.0",
     "svelte-sonner": "^1.1.0",
     "sveltekit-superforms": "^2.30.0",
     "zod": "^3.25.67"
